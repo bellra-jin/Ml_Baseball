@@ -17,11 +17,10 @@ def build_train_dataset():
 
     for year in TRAIN_SEASONS:
         current_dir = PROCESSED_DIR / str(year)
-        prev_dir = PROCESSED_DIR / str(year - 1)
 
         daily_path = current_dir / "team_daily_rank_clean.csv"
         label_path = current_dir / "team_final_rank_clean.csv"
-        prev_path = prev_dir / f"prev_features_for_{year}.csv"
+        prev_path = current_dir / f"prev_features_from_{year - 1}.csv"
 
         if not daily_path.exists() or not label_path.exists() or not prev_path.exists():
             print(f"[SKIP] {year} 파일 부족 — build_preprocessed.py를 먼저 실행하세요.")

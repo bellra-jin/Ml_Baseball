@@ -83,6 +83,12 @@ def clean_team_daily_rank(path, season):
     # 시즌 진행률
     df["games_played_ratio"] = df["games"] / TOTAL_GAMES
 
+    # 남은 경기 수: 후반부일수록 현재 순위의 신뢰도 증가
+    df["remaining_games"] = TOTAL_GAMES - df["games"]
+
+    # 홈/원정 승률 차이: 양수면 원정에 약한 팀
+    df["home_away_win_diff"] = df["home_win_rate"] - df["away_win_rate"]
+
     # 날짜에서 월 추출
     df["month"] = df["date"].dt.month
 

@@ -174,4 +174,29 @@ def merge_team_stats(hitter_df, pitcher_df, defense_df, runner_df):
         .merge(runner_df, on=["season", "team"], how="left")
     )
 
+    # 득실차: 공격력과 수비력을 동시에 반영하는 핵심 전력 지표
+    team_stats["run_differential"] = (
+        team_stats["team_runs"] - team_stats["team_runs_allowed"]
+    )
+
+    # 피타고라스 승률: 득실차 기반 예상 승률 (운을 제거한 실력 지표)
+    r = team_stats["team_runs"]
+    ra = team_stats["team_runs_allowed"]
+    team_stats["pythagorean_win_rate"] = r ** 2 / (r ** 2 + ra ** 2)
+
+    # 삼진/볼넷 비율: 투수 제구력 지표 (ERA보다 운의 영향을 덜 받음)
+    team_stats["k_bb_ratio"] = (
+        team_stats["team_so_pitcher"]
+        / team_stats["team_bb_allowed"].replace(0, np.nan)
+    )
+
+    # 순수 장타력: 단순 안타가 아닌 장타(홈런·2루타) 의존도
+    team_stats["iso"] = team_stats["team_slg"] - team_stats["team_avg"]
+
+    # 볼넷 비율: 선구안 기반 출루 능력 (운의 영향이 적음)
+    team_stats["bb_rate"] = (
+        team_stats["team_bb"]
+        / team_stats["team_pa"].replace(0, np.nan)
+    )
+
     return team_stats

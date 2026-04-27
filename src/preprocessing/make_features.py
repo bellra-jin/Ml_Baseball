@@ -105,19 +105,25 @@ def _add_recent_n_win_rate(df, n):
 
 
 def _add_games_behind_5th(df):
-    """5위와의 게임차를 추가한다. 음수이면 5위권 안에 있음을 의미한다."""
+    """5위와의 게임차 및 5위 추월에 필요한 승수를 추가한다."""
     df = df.copy()
     df["games_behind_5th"] = np.nan
+    df["wins_to_5th"] = np.nan
 
     for _, day in df.groupby("date"):
         fifth = day[day["rank"] == 5]
         if fifth.empty:
             continue
         fifth_row = fifth.iloc[0]
+
         gb = (
             (fifth_row["wins"] - day["wins"]) +
             (day["losses"] - fifth_row["losses"])
         ) / 2
         df.loc[day.index, "games_behind_5th"] = gb.values
+
+        # 5위 팀의 승수를 따라잡기 위해 필요한 최소 승수 (이미 앞서면 0)
+        wins_needed = (fifth_row["wins"] - day["wins"]).clip(lower=0)
+        df.loc[day.index, "wins_to_5th"] = wins_needed.values
 
     return df

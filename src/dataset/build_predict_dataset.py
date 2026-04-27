@@ -14,10 +14,9 @@ def build_predict_dataset(season=PREDICT_SEASON):
     make_dirs()
 
     current_dir = PROCESSED_DIR / str(season)
-    prev_dir = PROCESSED_DIR / str(season - 1)
 
     daily_path = current_dir / "team_daily_rank_clean.csv"
-    prev_path = prev_dir / f"prev_features_for_{season}.csv"
+    prev_path = current_dir / f"prev_features_from_{season - 1}.csv"
 
     if not daily_path.exists() or not prev_path.exists():
         print(f"[SKIP] {season} 파일 부족 — build_preprocessed.py를 먼저 실행하세요.")

@@ -320,17 +320,20 @@ def save_preprocessed_year(year):
     print("pitcher_summary_clean 저장:", pitcher_summary.shape)
     print(f"season_features_{year} 저장:", season_features.shape)
 
-    # 4. 다음 시즌에 붙일 prev_ 변수 저장
+    # 4. 다음 시즌 폴더에 prev_ 변수 저장 (사용되는 연도 폴더에 보관)
     if year < 2026:
         prev_features = make_prev_features(season_features)
 
+        next_year_dir = PROCESSED_DIR / str(year + 1)
+        next_year_dir.mkdir(parents=True, exist_ok=True)
+
         prev_features.to_csv(
-            processed_year_dir / f"prev_features_for_{year + 1}.csv",
+            next_year_dir / f"prev_features_from_{year}.csv",
             index=False,
             encoding="utf-8-sig",
         )
 
-        print(f"prev_features_for_{year + 1} 저장:", prev_features.shape)
+        print(f"prev_features_from_{year} 저장 (→ {year + 1}/ 폴더):", prev_features.shape)
 
     print(f"===== {year} 전처리 완료 =====")
 

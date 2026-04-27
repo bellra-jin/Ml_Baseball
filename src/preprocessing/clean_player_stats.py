@@ -75,6 +75,7 @@ def make_hitter_summary(basic_df, detail_df=None):
     for (season, team), g in df.groupby(["season", "team"]):
         # PA 기준 상위 5명(주전)을 고정하고 모든 지표를 같은 선수에서 계산한다.
         starters = g.sort_values("hitter_pa", ascending=False).head(5)
+        cleanup = starters.head(3)
 
         row = {
             "season": season,
@@ -85,7 +86,14 @@ def make_hitter_summary(basic_df, detail_df=None):
         }
 
         if "hitter_ops" in starters.columns:
-            row["top5_hitter_ops_avg"] = starters["hitter_ops"].mean()
+            top5_ops = starters["hitter_ops"].mean()
+            top3_ops = cleanup["hitter_ops"].mean()
+            row["top5_hitter_ops_avg"] = top5_ops
+            row["top3_hitter_ops_avg"] = top3_ops
+            # top5가 0이면 NaN 처리
+            row["ops_concentration"] = (
+                top3_ops / top5_ops if top5_ops > 0 else float("nan")
+            )
 
         if "hitter_obp" in starters.columns:
             row["top5_hitter_obp_avg"] = starters["hitter_obp"].mean()
@@ -142,16 +150,26 @@ def make_pitcher_summary(basic_df):
     result = []
 
     for (season, team), g in df.groupby(["season", "team"]):
-        # 이닝 상위 5명을 주요 투수로 본다.
+        # 이닝 상위 5명을 주요 투수(선발 로테이션)로 본다.
         top_ip = g.sort_values("pitcher_ip", ascending=False).head(5)
+        rotation_era_avg = top_ip["pitcher_era"].mean()
+
+        # IP 60이닝 이상을 선발 기준으로 삼아 에이스(최저 ERA)를 뽑는다.
+        starters = g[g["pitcher_ip"] >= 60]
+        if starters.empty:
+            starters = top_ip.head(1)
+        ace_era = starters["pitcher_era"].min()
 
         row = {
             "season": season,
             "team": team,
-            "top5_pitcher_era_avg": top_ip["pitcher_era"].mean(),
+            "top5_pitcher_era_avg": rotation_era_avg,
             "top5_pitcher_whip_avg": top_ip["pitcher_whip"].mean(),
             "top5_pitcher_ip_sum": top_ip["pitcher_ip"].sum(),
             "top5_pitcher_so_sum": top_ip["pitcher_so"].sum(),
+            "ace_era": ace_era,
+            # 로테이션 평균 ERA - 에이스 ERA: 클수록 에이스 의존도 높음
+            "ace_era_gap": rotation_era_avg - ace_era,
         }
 
         result.append(row)
