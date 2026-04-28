@@ -1,3 +1,9 @@
+# src/preprocessing/clean_team_rank.py
+#
+# KBO 팀 순위 관련 원본 CSV 데이터를 전처리한다.
+# 일자별 순위 데이터에서는 날짜, 순위, 승률, 최근 10경기, 홈/원정 성적,
+# 연승/연패 흐름 등을 정리하고, 최종 순위 데이터에서는 postseason 라벨을 생성한다.
+
 import pandas as pd
 
 from src.utils.config import TOTAL_GAMES
@@ -10,10 +16,17 @@ from src.utils.parser import (
 )
 
 
+# ─────────────────────────────────────────────
+# 팀 일자별 순위 데이터 전처리
+# ─────────────────────────────────────────────
+
 def clean_team_daily_rank(path, season):
     """팀 일자별 순위 데이터를 전처리한다."""
+
+    # 한글 인코딩 문제를 방지하며 CSV 읽기
     df = read_csv_korean(path)
 
+    # KBO 원본 컬럼명을 프로젝트에서 사용할 영문 컬럼명으로 변경
     df = df.rename(columns={
         "날짜": "date",
         "순위": "rank",
@@ -30,6 +43,7 @@ def clean_team_daily_rank(path, season):
         "방문": "away_record",
     })
 
+    # 어느 시즌 데이터인지 구분하기 위한 season 컬럼 추가
     df["season"] = season
 
     # 날짜 변환
@@ -46,6 +60,7 @@ def clean_team_daily_rank(path, season):
         "games_behind",
     ]
 
+    # 순위, 경기 수, 승패무, 승률, 게임차를 숫자형으로 변환
     for col in num_cols:
         if col in df.columns:
             df[col] = to_numeric_safe(df[col])
@@ -92,22 +107,34 @@ def clean_team_daily_rank(path, season):
     # 날짜에서 월 추출
     df["month"] = df["date"].dt.month
 
+    # 전처리된 팀 일자별 순위 데이터 반환
     return df
 
 
+# ─────────────────────────────────────────────
+# 팀 최종 순위 라벨 생성
+# ─────────────────────────────────────────────
+
 def clean_team_final_rank(path, season):
     """시즌 최종 순위 데이터로 postseason 라벨을 만든다."""
+
+    # 한글 인코딩 문제를 방지하며 CSV 읽기
     df = read_csv_korean(path)
 
+    # KBO 원본 컬럼명을 프로젝트에서 사용할 영문 컬럼명으로 변경
     df = df.rename(columns={
         "순위": "final_rank",
         "팀명": "team",
     })
 
+    # 어느 시즌 데이터인지 구분하기 위한 season 컬럼 추가
     df["season"] = season
+
+    # 최종 순위를 숫자형으로 변환
     df["final_rank"] = to_numeric_safe(df["final_rank"])
 
     # 최종 5위 이내면 포스트시즌 진출
     df["postseason"] = (df["final_rank"] <= 5).astype(int)
 
+    # 모델 정답 라벨로 사용할 핵심 컬럼만 반환
     return df[["season", "team", "final_rank", "postseason"]]
