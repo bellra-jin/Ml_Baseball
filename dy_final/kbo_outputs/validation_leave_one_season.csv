@@ -1,0 +1,10 @@
+﻿test_season,slice,rows,team_accuracy,top5_overlap,baseline_current_top5_overlap
+2023,daily_all_after_10g,1566,0.8180076628352491,,
+2023,april_latest,10,0.7,3.0,3.0
+2023,season_latest,10,0.9,4.0,5.0
+2024,daily_all_after_10g,1530,0.730718954248366,,
+2024,april_latest,10,0.6,3.0,3.0
+2024,season_latest,10,1.0,5.0,5.0
+2025,daily_all_after_10g,1533,0.7175472928897586,,
+2025,april_latest,10,0.7,3.0,3.0
+2025,season_latest,10,0.8,5.0,5.0
