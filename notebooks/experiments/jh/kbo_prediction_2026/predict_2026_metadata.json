@@ -1,6 +1,6 @@
 {
   "model_cache_version": "strategy_c_20_features_v3",
-  "generated_at_utc": "2026-04-29T14:45:56.451456+00:00",
+  "generated_at_utc": "2026-04-29T15:20:00.397290+00:00",
   "train_sha256": "e002775f9f3940b42ebe71eb4bba49d9ca567e8be5b615c3c510b48e2a7a7404",
   "predict_sha256": "f5be1c06b579cd5a2b9576e58cfc2501ad440d26c04f81ad17e579234986ef28",
   "feature_cols": [
