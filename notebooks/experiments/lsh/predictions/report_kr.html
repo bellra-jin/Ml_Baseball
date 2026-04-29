@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KBO 포스트시즌 예측 - TPOT AutoML 리포트</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Malgun Gothic','Segoe UI',sans-serif; background:#f5f6fa; color:#2d3436; line-height:1.7; padding:20px; }
+.container { max-width:960px; margin:0 auto; }
+.cover { background:linear-gradient(135deg,#2d3436 0%,#636e72 100%); color:#fff; padding:50px 40px; border-radius:12px; text-align:center; margin-bottom:30px; }
+.cover h1 { font-size:2rem; margin-bottom:8px; }
+.cover .subtitle { color:#dfe6e9; font-size:1.05rem; }
+.cover .meta { color:#b2bec3; font-size:0.85rem; margin-top:12px; }
+.card { background:#fff; border-radius:10px; padding:30px; margin-bottom:24px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+.card h2 { font-size:1.3rem; color:#2d3436; border-left:4px solid #0984e3; padding-left:12px; margin-bottom:16px; }
+.card h3 { font-size:1.05rem; color:#636e72; margin:16px 0 8px; }
+.card p,.card li { font-size:0.95rem; color:#636e72; }
+.card ul { padding-left:20px; }
+.card li { margin-bottom:4px; }
+.card .highlight { background:#eef3fc; border-radius:6px; padding:12px 16px; margin:10px 0; }
+.card .highlight strong { color:#2d3436; }
+img.chart { display:block; max-width:100%; height:auto; margin:16px auto; border-radius:8px; border:1px solid #eee; }
+.img-caption { text-align:center; font-size:0.83rem; color:#b2bec3; margin:-10px 0 20px; }
+table { width:100%; border-collapse:collapse; margin:12px 0; font-size:0.92rem; }
+th { background:#0984e3; color:#fff; padding:10px 12px; text-align:center; font-weight:600; }
+td { padding:8px 12px; text-align:center; border-bottom:1px solid #eee; }
+tr:nth-child(even) td { background:#f8f9fb; }
+tr:hover td { background:#eef3fc; }
+.ps-cell { color:#00b894; font-weight:bold; }
+.elim-cell { color:#d63031; font-weight:bold; }
+.tag { display:inline-block; font-size:0.78rem; padding:3px 10px; border-radius:12px; font-weight:600; }
+.tag-ps { background:#dfeefb; color:#0984e3; }
+.tag-dyn { background:#ffeaa7; color:#b7950b; }
+.tag-prev { background:#dfe6e9; color:#636e72; }
+.footer { text-align:center; font-size:0.83rem; color:#b2bec3; padding:20px 0; }
+.note { font-size:0.85rem; color:#b2bec3; margin-top:-6px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div class="cover">
+<h1>KBO 포스트시즌 예측 - TPOT AutoML 리포트</h1>
+<div class="subtitle">TPOT AutoML을 활용한 2026 KBO 포스트시즌 진출 확률 분석</div>
+<div class="meta">생성일: 2026-04-29 | 학습 데이터: 2017~2024 | 검증 데이터: 2025 | 타겟 시즌: 2026 | 알고리즘: TPOT GA + Logistic Regression</div>
+</div>
+
+<!-- 1. Prediction Overview -->
+<div class="card">
+<h2>1. 2026 포스트시즌 진출 예측 결과</h2>
+<p>본 모델은 TPOT AutoML을 사용하여 2017~2024년 KBO 데이터를 학습하였으며, 각 팀이 상위 5위 안에 들어 포스트시즌에 진출할 확률을 예측합니다. 예측은 2026년 4월 26일 기준 팀 성적(팀당 최대 25경기 소화)을 바탕으로 합니다. <strong>모델은 현재 6개 팀이 50% 이상의 진출 확률을 가진 것으로 예측하고 있습니다.</strong></p>
+
+<table>
+<tr><th>순위</th><th>팀</th><th>확률</th><th>예측 결과</th><th>비고 및 맥락</th></tr>
+<tr><td>1</td><td><strong>LG</strong></td><td>96.9%</td><td class="ps-cell">포스트시즌</td><td>7년 연속 PS 진출의 압도적 성과 (2019~2025)</td></tr>
+<tr><td>2</td><td><strong>KT</strong></td><td>89.8%</td><td class="ps-cell">포스트시즌</td><td>2020년 이후 5회 PS 진출 기록</td></tr>
+<tr><td>3</td><td><strong>삼성</strong></td><td>83.5%</td><td class="ps-cell">포스트시즌</td><td>2021, 2024, 2025년 진출 성공</td></tr>
+<tr><td>4</td><td><strong>SSG</strong></td><td>73.2%</td><td class="ps-cell">포스트시즌</td><td>SK/SSG의 강력한 유산, 최근 5년간 3회 PS 진출</td></tr>
+<tr><td>5</td><td><strong>KIA</strong></td><td>55.2%</td><td class="ps-cell">포스트시즌</td><td>디펜딩 챔피언; 현재 5위권 경계선 위치</td></tr>
+<tr><td>6</td><td><strong>한화</strong></td><td>51.4%</td><td class="ps-cell">포스트시즌</td><td>진출 임계점인 0.5 확률에 정확히 걸쳐 있음</td></tr>
+<tr><td>7</td><td>NC</td><td>30.0%</td><td class="elim-cell">탈락 예상</td><td>리빌딩 단계</td></tr>
+<tr><td>8</td><td>키움</td><td>21.3%</td><td class="elim-cell">탈락 예상</td><td>젊은 선수층 위주의 로스터</td></tr>
+<tr><td>9</td><td>두산</td><td>17.1%</td><td class="elim-cell">탈락 예상</td><td>전통의 강호(9년 중 7회 PS)이나 2026년 초반 부진</td></tr>
+<tr><td>10</td><td>롯데</td><td>3.6%</td><td class="elim-cell">탈락 예상</td><td>지난 9년간 단 1회 PS 진출</td></tr>
+</table>
+<p class="note">2026-04-26 기준 데이터(최대 25경기). 포스트시즌 분류의 기본 임계값은 <strong>확률 0.5</strong>입니다.</p>
+</div>
+
+<!-- 2. Pipeline Architecture -->
+<div class="card">
+<h2>2. TPOT 자동 머신러닝 파이프라인</h2>
+<p>TPOT(Tree-based Pipeline Optimization Tool)은 유전 알고리즘을 사용하여 최적의 머신러닝 파이프라인을 자동으로 탐색합니다. 데이터에 최적화된 아키텍처를 찾기 위해 전처리, 특성 공학 및 모델 알고리즘의 수천 가지 조합을 테스트합니다.</p>
+
+<h3>2.1 최적화된 파이프라인 단계</h3>
+<p>3세대 진화(개체 수=20)를 거쳐 TPOT은 다음과 같은 파이프라인으로 수렴되었습니다:</p>
+<div class="highlight">
+<div><strong>[단계 1] 정규화 (Normalization)</strong> <code>Normalizer</code> - L2 정규화(행 기준)를 통해 특성들을 비교 가능한 스케일로 조정</div>
+<div><strong>[단계 2] 특성 선택 (Feature Selection)</strong> <code>SelectPercentile(87%)</code> - 가장 정보력이 높은 상위 87% 특성 유지 (36개 중 31개)</div>
+<div><strong>[단계 3] 특성 결합 (Feature Union)</strong> <code>FeatureUnion</code> - 기본 통과 데이터와 함께 ZeroCount 특성 추가</div>
+<div><strong>[단계 4] 특성 결합 (Feature Union)</strong> <code>FeatureUnion</code> - SkipTransformer와 기본 통과 데이터 조합</div>
+<div><strong>[단계 5] 분류기 (Classifier)</strong> <code>LogisticRegression</code> - L1 규제(LASSO), 클래스 가중치 균형(balanced), SAGA 솔버 사용</div>
+</div>
+
+<h3>2.2 2025 시즌 검증 (마일스톤 평가)</h3>
+<img class="chart" src="charts/milestone_evaluation.png" alt="마일스톤 평가 차트">
+<div class="img-caption">핵심 인사이트: 시즌이 진행됨에 따라 모델의 정확도가 점진적으로 향상됨 (M1: 36경기 ~ M4: 144경기)</div>
+
+<table>
+<tr><th>마일스톤</th><th>소화 경기 수</th><th>정확도</th><th>AUC</th><th>F1 스코어</th><th>혼동 행렬 (TP/FP/FN/TN)</th></tr>
+<tr><td>M1</td><td>36 (25%)</td><td>0.500</td><td>0.64</td><td>0.545</td><td>TP=3 FP=3 / FN=2 TN=2</td></tr>
+<tr><td>M2</td><td>72 (50%)</td><td>0.500</td><td>0.64</td><td>0.545</td><td>TP=3 FP=3 / FN=2 TN=2</td></tr>
+<tr><td>M3</td><td>108 (75%)</td><td>0.600</td><td>0.68</td><td>0.600</td><td>TP=3 FP=2 / FN=2 TN=3</td></tr>
+<tr><td style="font-weight:bold;background:#eef3fc;">M4</td><td style="background:#eef3fc;">144 (100%)</td><td style="background:#eef3fc;color:#00b894;font-weight:bold;">0.900</td><td style="background:#eef3fc;color:#00b894;font-weight:bold;">1.000</td><td style="background:#eef3fc;color:#00b894;font-weight:bold;">0.909</td><td style="background:#eef3fc;">TP=5 FP=1 / FN=0 TN=4</td></tr>
+</table>
+
+<p><strong>해석:</strong> 단조 증가 추세(0.50 -> 0.50 -> 0.60 -> 0.90)는 모델의 설계 의도를 뒷받침합니다. 시즌 종료 시점에서 모델은 10개 팀 중 9개 팀을 정확히 식별했습니다(AUC = 1.0 완벽 분리). M4에서의 단일 FP(거짓 양성)는 진출할 것으로 예측되었으나 근소한 차이로 탈락한 한 팀을 의미합니다.</p>
+</div>
+
+<!-- 2.5 Model Performance Curves -->
+<div class="card">
+<h2>2.5 모델 성능 평가</h2>
+<p>본 모델은 분류 모델(이진: 포스트시즌 진출 여부)이므로 R-squared와 같은 회귀 지표 대신 분류 지표를 사용하여 평가합니다.</p>
+
+<h3>2.5.1 ROC 곡선 (Receiver Operating Characteristic)</h3>
+<p>ROC 곡선은 모든 가능한 임계값에서 진짜 양성 비율(진출 적중)과 가짜 양성 비율(오탐지) 사이의 트레이드오프를 보여줍니다. AUC(곡선 아래 면적)가 1.0에 가까울수록 완벽한 분리 성능을 의미합니다.</p>
+<img class="chart" src="charts/roc_curve.png" alt="ROC 곡선">
+<div class="img-caption">학습 AUC = 0.923 | 검증 AUC = 0.745. 운영 시점(임계값 0.5)은 녹색으로 표시됨.</div>
+
+<table>
+<tr><th>지표</th><th>학습 데이터 (2017-2024)</th><th>2025 검증 데이터</th><th>해석</th></tr>
+<tr><td>AUC-ROC</td><td style="color:#0984e3;font-weight:bold;">0.923</td><td style="color:#00b894;font-weight:bold;">0.745</td><td>학습 데이터에서 강력한 분리력 확인; 검증 AUC(0.745)는 미학습 시즌에 대해 합리적인 일반화 성능을 보임</td></tr>
+<tr><td>Log Loss (로그 손실)</td><td>0.349</td><td>0.728</td><td>낮을수록 좋음. 검증 로그 손실이 더 높으나 외삽 예측(Out-of-sample)에서 예상 가능한 수준임</td></tr>
+<tr><td>Average Precision (평균 정밀도)</td><td>0.927</td><td>0.724</td><td>정밀도-재현율 곡선 아래 면적; 모델이 PS 진출 팀의 순위를 매기는 데 72.4% 효율적임을 의미</td></tr>
+<tr><td>Brier Score (브라이어 스코어)</td><td>0.113</td><td>0.260</td><td>예측 확률의 정확도: 0.113은 매우 우수(0에 가까움). 검증 0.260은 기준점(0.25) 대비 수용 가능한 수준</td></tr>
+</table>
+
+<h3>2.5.2 학습 곡선: 훈련 데이터 크기에 따른 로그 손실</h3>
+<p>학습 곡선은 훈련 데이터의 양에 따른 로그 손실(예측 오차)의 변화를 나타냅니다. 학습 곡선과 검증 곡선 사이의 간격이 좁아지는 것은 좋은 일반화 성능을 의미합니다.</p>
+<img class="chart" src="charts/learning_curve.png" alt="학습 곡선">
+<div class="img-caption">학습 로그 손실(파란색)은 데이터가 많아질수록 꾸준히 감소합니다. 학습과 검증 사이의 간격이 좁아지며, 모델이 추가 데이터로부터 혜택을 받고 있음을 보여줍니다.</div>
+
+<p><strong>학습 곡선 주요 발견:</strong></p>
+<ul>
+<li><strong>단조적 개선:</strong> 훈련 데이터가 10%에서 100%로 증가함에 따라 학습 및 검증 로그 손실이 모두 감소합니다. 더 많은 시즌 데이터가 더 나은 예측으로 이어집니다.</li>
+<li><strong>일반화 간격 (최종): 0.379</strong> - 단 8개 시즌의 시계열 데이터임을 감안할 때 이 간격은 건강한 수준이며, 심각한 과적합이 없음을 시사합니다.</li>
+<li><strong>수익 체감 지점:</strong> 약 60% 이상의 데이터(5개 시즌 이상)가 확보된 시점부터 검증 손실 개선이 완만해집니다. 이는 KBO 데이터를 활용한 예측 시 최소 5~6개 시즌이 필수적임을 나타냅니다.</li>
+</ul>
+
+<h3>2.5.3 정밀도-재현율 곡선 (Precision-Recall Curve)</h3>
+<p>정밀도(진출 예측 중 실제 진출 비율)와 재현율(실제 진출 팀 중 예측 성공 비율)의 균형을 평가합니다.</p>
+<img class="chart" src="charts/pr_curve.png" alt="정밀도-재현율 곡선">
+<div class="img-caption">학습 AP = 0.927 | 검증 AP = 0.724. 회색 점선은 베이스라인(10개 팀 중 5개 진출 = 0.50)입니다.</div>
+
+<h3>2.5.4 캘리브레이션 곡선 (신뢰도 도표)</h3>
+<p>예측된 확률이 실제 결과와 얼마나 잘 일치하는지 측정합니다. 완벽한 모델은 대각선 점선을 따릅니다. 예를 들어, 70% 확률로 예측된 팀들은 실제로 약 70%의 빈도로 진출해야 합니다.</p>
+<img class="chart" src="charts/calibration_curve.png" alt="캘리브레이션 곡선">
+<div class="img-caption">학습 단계의 캘리브레이션은 거의 완벽합니다. 검증 단계에서는 약간의 과신(예측 확률이 실제 빈도보다 높음) 경향이 관찰됩니다.</div>
+
+<p><strong>해석:</strong> 검증 캘리브레이션 곡선이 대각선 아래에 위치하므로, 모델이 2025년에 대해 약간 과신하는 경향이 있습니다. 브라이어 스코어 0.260(기준점 0.25 근처)은 이것이 허용 범위 내에 있음을 확인해 줍니다. 2026년 예측치를 해석할 때 "LG 96.9%"와 같은 확률은 다소 낙관적일 수 있음을 인지해야 합니다.</p>
+</div>
+
+<!-- 3. Data Pipeline -->
+<div class="card">
+<h2>3. 데이터 파이프라인</h2>
+
+<h3>3.1 학습/검증/예측 데이터 분할</h3>
+<p>데이터 누수(Data Leakage)를 방지하기 위해 엄격한 시간순 분할을 적용했습니다. TPOT 내부적으로 TimeSeriesSplit을 사용하여 모델 선택 과정 전반에서 "과거가 미래를 학습"하도록 보장했습니다.</p>
+<div class="highlight">
+<strong>학습 세트:</strong> 2017~2024 (8개 시즌, 12,792행 x 36개 특성) &nbsp;
+<strong>검증 세트:</strong> 2025 (1개 시즌, 1,630행)<br>
+<strong>예측 타겟:</strong> 2026 시즌 (현재 데이터 250행)
+</div>
+
+<h3>3.2 도메인 지식 기반 결측치 처리</h3>
+<p>원천 데이터의 구조적 결측치는 단순 중앙값 대체가 아닌 도메인 지식을 기반으로 처리되었습니다.</p>
+<table>
+<tr><th>특성 그룹</th><th>결측률</th><th>원인</th><th>대체 전략</th></tr>
+<tr><td><code>dyn_*</code> (9개 특성)</td><td>28.5%</td><td>3개년 기록 부족</td><td><strong>0</strong> (dyn 지표는 자연스럽게 0으로 수렴)</td></tr>
+<tr><td><code>recent20/30_win_rate</code></td><td>13~20%</td><td>시즌 초반(20/30경기 미만)</td><td><strong>현재 승률</strong> (가장 적절한 대리 지표)</td></tr>
+<tr><td><code>games_behind_5th, wins_to_5th</code></td><td>12.4%</td><td>순위 산정 전 단계</td><td><strong>0</strong> (초반에는 유의미한 차이 없음)</td></tr>
+<tr><td><code>win_rate_delta_30d, rank_delta_30d</code></td><td>16%</td><td>30일 전 기록 부재</td><td><strong>0</strong> (변동 없음 = 베이스라인)</td></tr>
+<tr><td><code>prev_*</code> (9개 특성)</td><td>2.2%</td><td>KT 2017 첫 시즌 등</td><td><strong>해당 시즌 리그 평균</strong> (최악의 경우 대리 지표)</td></tr>
+</table>
+
+<h3>3.3 특성 공학 (36개 특성)</h3>
+<p>특성은 세 가지 개념적 그룹으로 구성됩니다: <span style="color:#0984e3;">당해 시즌</span> / <span style="color:#b7950b;">3개년 동적 지표</span> / <span style="color:#636e72;">직전 시즌</span>.</p>
+<div class="highlight">
+<div><span class="tag tag-ps">당해 시즌 (18)</span> 순위, 승률, 5위와의 승차, 최근 10경기 승률, 연속 승패 유형, 연속 승패 수, 홈 승률, 원정 승률, 경기 소화율, 30일 대비 승률 변화, 30일 대비 순위 변화, 5위 탈환 필요 승수, 잔여 경기 수, 홈/원정 승률 차이, 1위와의 승차, 경기 수, 최근 20경기 승률, 최근 30경기 승률</div>
+<div><span class="tag tag-prev">직전 시즌 (9)</span> 전년도 피타고리안 승률, 득실차, 평균자책점(ERA), K/BB 비율, 상위 5인 타자 OPS 평균, 에이스 ERA, ISO, OPS 집중도, 볼넷 비율</div>
+<div><span class="tag tag-dyn">3개년 동적 지표 (9)</span> dyn_피타고리안 승률, 득실차, ERA, K/BB 비율, 상위 5인 타자 OPS 평균, 에이스 ERA, ISO, OPS 집중도, 볼넷 비율</div>
+</div>
+<p><strong>dyn_ 변수의 혁신:</strong> <code>dyn_k = (1 - 경기 소화율) x 3년 평균_k</code> 공식을 사용합니다. 시즌 초반(소화율 ~ 0)에는 3개년 기록이 온전히 반영되지만, 시즌 종료 시점(소화율 ~ 1)에는 가중치가 0으로 수렴합니다. 이는 경기 데이터가 쌓임에 따라 예측의 무게중심을 과거의 전력에서 현재의 성적으로 우아하게 전환합니다.</p>
+</div>
+
+<!-- 4. Model Details -->
+<div class="card">
+<h2>4. 모델 상세: L1 규제 로지스틱 회귀</h2>
+<p>유전 알고리즘을 통해 3세대 동안 60개의 후보 파이프라인을 탐색한 결과, <strong>L1(LASSO) 규제가 적용된 로지스틱 회귀</strong>가 최적 모델로 선정되었습니다.</p>
+
+<div class="highlight">
+<div><strong>알고리즘:</strong> LogisticRegression(C=1330, penalty=L1, solver=saga, class_weight=balanced, max_iter=1000)</div>
+<div><strong>L1 규제를 사용하는 이유:</strong> LASSO 규제는 중요하지 않은 특성의 계수를 0으로 만들어 자동 특성 선택을 수행하므로, 모델이 희소(sparse)해지고 해석 가능성이 높아집니다.</div>
+<div><strong>Balanced 클래스 가중치:</strong> 팀별 라벨 불균형(50:50이 이상적이나 미세한 차이 존재)을 보정합니다.</div>
+<div><strong>학습 성능:</strong> AUC = 0.9234 | 정확도 = 83.55%</div>
+</div>
+
+<h3>4.1 L1 규제 설명 (비기술적 관점)</h3>
+<p>L1 규제(LASSO)는 36개의 특성 중 실제로 중요한 것이 무엇인지 식별합니다. 모든 특성을 사용하는 대신 약한 특성을 선별적으로 <em>제거</em>합니다. 이는 마치 야구 감독이 선발 라인업을 짜는 것과 같습니다. 36개의 모든 통계가 똑같이 중요하지는 않기 때문입니다. 모델은 5~7개의 핵심 지표(5위와의 승차, 득실차 이력 등)가 대부분의 예측력을 가지며, 10경기 반짝 승률과 같은 단기 변동성은 덜 중요하다는 것을 스스로 학습합니다.</p>
+
+<h3>4.2 TimeSeriesSplit 검증</h3>
+<p>시계열 데이터에서 표준 K-Fold 교차 검증을 사용하면 미래 정보가 과거로 유출될 수 있습니다. 대신 TimeSeriesSplit을 사용하여 각 "폴드"가 과거 데이터만을 사용하도록 보장했습니다:</p>
+<ul>
+<li><strong>Fold 1:</strong> 2017~2019 학습 -> 2020 예측</li>
+<li><strong>Fold 2:</strong> 2017~2020 학습 -> 2021 예측</li>
+<li><strong>Fold 3:</strong> 2017~2021 학습 -> 2022 예측</li>
+<li><strong>Fold 4:</strong> 2017~2022 학습 -> 2023 예측</li>
+<li><strong>Fold 5:</strong> 2017~2023 학습 -> 2024 예측</li>
+<li><strong>최종 검증 (2025):</strong> 2017~2024 학습 -> 2025 예측 (마일스톤 평가에 활용)</li>
+</ul>
+<p>이러한 점진적 설계는 시즌을 거듭하며 변화하는 리그 차원의 ERA/OPS 트렌드를 자연스럽게 포착합니다.</p>
+</div>
+
+<!-- 5. Feature Importance -->
+<div class="card">
+<h2>5. 특성 중요도 - SHAP 분석</h2>
+<p>SHAP(SHapley Additive exPlanations) 값은 각 특성이 개별 예측에 기여하는 정도를 수치화합니다. 평균 |SHAP| 값이 높을수록 모델의 포스트시즌 진출 결정에 더 큰 영향을 미칩니다.</p>
+<img class="chart" src="charts/shap_top15.png" alt="SHAP 특성 중요도 상위 15">
+<div class="img-caption">평균 |SHAP| 값 기준 상위 15개 특성. 당해 시즌 순위 및 승차 지표가 주도하며, 3개년 및 직전 시즌 득실차가 그 뒤를 잇습니다.</div>
+
+<h3>가장 중요한 5대 특성</h3>
+<table>
+<tr><th>순위</th><th>특성</th><th>그룹</th><th>해석</th></tr>
+<tr>
+<td>1</td><td><code>games_behind_5th</code></td>
+<td><span class="tag tag-ps">당해 시즌</span></td>
+<td>5위 팀과의 승차. 포스트시즌 진출의 가장 직접적인 척도: 음수는 5위 이내, 양수는 5위 밖을 의미. SHAP 값 0.108.</td>
+</tr>
+<tr>
+<td>2</td><td><code>dyn_run_differential</code></td>
+<td><span class="tag tag-dyn">3개년 동적</span></td>
+<td>시즌 진행에 따른 가중치 감쇄가 적용된 3개년 평균 득실차. 팀의 지속적인 전력을 포착. SHAP 값 0.078.</td>
+</tr>
+<tr>
+<td>3</td><td><code>prev_run_differential</code></td>
+<td><span class="tag tag-prev">직전 시즌</span></td>
+<td>직전 시즌의 득실차. 과거 PS 진출팀 평균(+45.7)과 비진출팀(-41.9) 사이의 큰 격차(87.6) 반영. SHAP 값 0.074.</td>
+</tr>
+<tr>
+<td>4</td><td><code>games_behind</code></td>
+<td><span class="tag tag-ps">당해 시즌</span></td>
+<td>1위와의 승차. 현재 시즌 내에서 팀의 전반적인 전력 수준을 나타내는 광범위한 지표. SHAP 값 0.056.</td>
+</tr>
+<tr>
+<td>5</td><td><code>wins_to_5th</code></td>
+<td><span class="tag tag-ps">당해 시즌</span></td>
+<td>5위 탈환을 위해 필요한 승수. games_behind_5th를 보완하는 지표. SHAP 값 0.041.</td>
+</tr>
+</table>
+
+<h3>SHAP 분석 주요 결과</h3>
+<ul>
+<li><strong>순위 격차 지표의 압도적 영향:</strong> 상위 5개 특성이 모두 순위 또는 승차와 관련되어 있습니다. 이 지표들이 전체 SHAP 중요도의 72%를 차지합니다.</li>
+<li><span class="tag tag-dyn">dyn_run_differential</span> (#2)의 높은 순위는 dyn_ 설계의 유효성을 증명합니다. 모델은 시즌이 진행됨에 따라 자연스럽게 소멸하는 다년 성적의 지속성 신호에 의존합니다.</li>
+<li><span class="tag tag-prev">prev_run_differential</span> (#3)은 EDA 결과와 일치합니다: 전년도 득실 마진은 당해 시즌 순위를 고려한 후에도 강력한 예측 인자로 작용합니다(r=+0.402).</li>
+<li><strong>흥미로운 점:</strong> 단순 승률(win_rate, SHAP = 0.0001)은 거의 영향을 주지 못합니다. LASSO 규제가 games_behind_5th나 순위 지표와 중복되는 정보를 담고 있는 승률의 계수를 0으로 수렴시켰기 때문입니다.</li>
+</ul>
+</div>
+
+<!-- 6. 2025 Season Visual Reference -->
+<div class="card">
+<h2>6. 2025 시즌 참조 차트</h2>
+<img class="chart" src="charts/team_trends_2025.png" alt="2025년 팀별 승률 궤적">
+<div class="img-caption">2025년 전체 시즌 승률 궤적. [PS]는 실제 포스트시즌 진출팀(굵은 선), 나머지는 점선으로 표시.</div>
+<p>차트는 모델의 논리를 뒷받침합니다: 일찍 치고 나가는 팀(0.550 이상을 유지한 LG, 상승세를 탄 한화)은 상위권에 안착하는 반면, 0.450 아래로 떨어진 팀들은 지속적으로 탈락권에 머뭅니다. 2025년 PS 진출군(LG 0.603, 한화 0.593, SSG 0.536, 삼성 0.521, NC 0.514)은 모두 0.500 이상의 승률을 유지했습니다.</p>
+<p>M4(144경기) 시점에서 모델은 90%의 정확도(10개 팀 중 9개 적중)와 AUC 1.0(완벽한 순위 분리)을 달성했습니다. 유일한 오답은 5위권에서 아주 근소한 차이로 탈락한 팀이었습니다.</p>
+</div>
+
+<!-- 7. Insights -->
+<div class="card">
+<h2>7. 주요 시사점 및 향후 과제</h2>
+
+<h3>주요 발견</h3>
+<ul>
+<li><strong>해석 가능성의 승리:</strong> TPOT은 복잡한 앙상블 모델 대신 단순하고 해석 가능한 로지스틱 회귀를 선택했습니다. 모델은 어떤 통계(5위와의 승차, 역사적 득실차 등)가 진출을 결정짓는지 투명하게 보여줍니다.</li>
+<li><strong>dyn_ 변수의 검증:</strong> dyn_run_differential이 SHAP 중요도 2위를 차지하며, 3개년 평균의 점진적 감쇄 방식이 과거 전력과 현재 폼의 균형을 잘 잡고 있음을 확인했습니다.</li>
+<li><strong>역사적 전력의 중요성:</strong> prev_run_differential(#3) 지표는 현재 순위를 반영한 후에도 전년도 팀 전력이 상당한 예측 가중치를 가짐을 시사합니다.</li>
+<li><strong>단조 학습 곡선:</strong> 마일스톤 평가(M1=0.50 -> M4=0.90)를 통해 시즌이 진행됨에 따라 모델의 확신도가 적절히 상승함을 입증했습니다.</li>
+</ul>
+
+<h3>한계점 및 향후 계획</h3>
+<ul>
+<li><strong>시즌 초반 예측의 노이즈:</strong> 2026년 예측은 현재 24~25경기에 기반하고 있습니다. M1 단계(36경기 시점)의 정확도가 0.50인 점을 고려할 때, 현재 수치는 불확실성이 큽니다. M2(72경기) 및 M3(108경기) 마일스톤에서 재평가가 필요합니다.</li>
+<li><strong>LASSO의 특성 억제:</strong> L1 규제는 해석을 명확히 해주지만, win_rate(상관계수 r=+0.784)와 같이 강한 개별 지표를 제거하기도 합니다. 이는 수학적으로는 옳으나(중복 정보 제거) 현장의 전문가들에게는 다소 반직관적일 수 있습니다.</li>
+<li><strong>팀별 고정 효과:</strong> LG(9년 중 7회 진출, 96.9%)와 같은 팀은 모델에서 매우 강력하게 평가됩니다. 향후 예산, 팜 시스템 깊이, 프런트 안정성 등 팀별 특성을 추가 변수로 고려해 볼 수 있습니다.</li>
+<li><strong>2단계 - 대화형 대시보드:</strong> "만약 X팀이 OPS를 0.050 올린다면 진출 확률이 어떻게 변할까?"와 같은 시뮬레이션이 가능한 Streamlit 앱을 구축할 예정입니다. 이를 통해 코칭스태프와 프런트의 의사결정에 기여할 수 있습니다.</li>
+</ul>
+</div>
+
+<div class="footer">
+KBO 포스트시즌 예측 프로젝트 | 생성일: 2026-04-29 | 1단계 - TPOT AutoML 파이프라인
+</div>
+
+</div>
+</body>
+</html>
