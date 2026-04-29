@@ -79,7 +79,7 @@ st.markdown(f"""
             ⚾ 포스트시즌 진출 예측
         </div>
         <div style="font-size:0.86rem;opacity:0.75;margin-bottom:22px;">
-            기준일: {ref_date} &nbsp;·&nbsp; XGBoost + LightGBM + RandomForest 앙상블
+            기준일: {ref_date} &nbsp;·&nbsp; Strategy C: LR + RF + lightXGB + lightLGBM 앙상블
         </div>
         <div style="display:flex;justify-content:space-between;font-size:0.74rem;
                     opacity:0.72;margin-bottom:7px;">
