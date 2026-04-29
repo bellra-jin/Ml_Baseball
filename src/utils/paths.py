@@ -9,6 +9,9 @@ from pathlib import Path
 # 현재 파일 위치 기준으로 상위 2단계 폴더를 프로젝트 루트로 사용
 BASE_DIR = Path(__file__).resolve().parents[2]
 
+# 모델/리포트 산출물 루트 경로
+ARTIFACTS_DIR = BASE_DIR / "artifacts"
+
 
 # ─────────────────────────────────────────────
 # 데이터 저장 경로 설정
