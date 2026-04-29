@@ -3,17 +3,70 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
 
 import pandas as pd
-import numpy as np
 import streamlit as st
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
-from src.utils.config import FEATURE_COLS
 
 ROOT = os.path.join(os.path.dirname(__file__), "../../..")
 
+TOP_FEATURES = [
+    "rank", "win_rate", "games_behind_5th",
+    "prev_pythagorean_win_rate", "prev_team_era", "prev_ops_concentration",
+    "prev_bb_rate", "prev_top5_hitter_ops_avg", "prev_ace_era",
+    "prev_run_differential", "prev_k_bb_ratio", "wins_to_5th",
+    "games_behind", "home_win_rate", "dyn_run_differential",
+    "prev_iso", "away_win_rate", "dyn_bb_rate",
+    "dyn_pythagorean_win_rate", "dyn_k_bb_ratio",
+]
 
-@st.cache_resource(show_spinner="앙상블 모델 학습 중... (첫 실행만 소요됩니다)")
+
+def _build_models(pos_w):
+    lr = Pipeline([
+        ("imputer", SimpleImputer(strategy="median")),
+        ("scaler", StandardScaler()),
+        ("lr", LogisticRegression(
+            C=0.1,
+            max_iter=2000,
+            random_state=42,
+            class_weight="balanced",
+            solver="lbfgs",
+        )),
+    ])
+    rf = RandomForestClassifier(
+        n_estimators=300, max_depth=4, min_samples_leaf=20,
+        max_features="sqrt", class_weight="balanced",
+        random_state=42, n_jobs=-1,
+    )
+    xgb = XGBClassifier(
+        n_estimators=40, max_depth=2, learning_rate=0.1,
+        subsample=0.6, colsample_bytree=0.5,
+        reg_alpha=5.0, reg_lambda=10.0, min_child_weight=30,
+        scale_pos_weight=pos_w, eval_metric="logloss", random_state=42,
+    )
+    lgbm = LGBMClassifier(
+        n_estimators=40, max_depth=2, learning_rate=0.1,
+        subsample=0.6, colsample_bytree=0.5,
+        reg_alpha=5.0, reg_lambda=10.0, min_child_samples=50,
+        scale_pos_weight=pos_w, random_state=42, verbose=-1,
+    )
+    return lr, rf, xgb, lgbm
+
+
+def _ensemble_proba(lr, rf, xgb, lgbm, X):
+    return (
+        lr.predict_proba(X)[:, 1] +
+        rf.predict_proba(X)[:, 1] +
+        xgb.predict_proba(X)[:, 1] +
+        lgbm.predict_proba(X)[:, 1]
+    ) / 4
+
+
+@st.cache_resource(show_spinner="Strategy C 앙상블 모델 학습 중... (첫 실행만 소요됩니다)")
 def load_model_and_predict():
     train_df = pd.read_csv(os.path.join(ROOT, "data/modeling/train_dataset.csv"))
     pred_df  = pd.read_csv(os.path.join(ROOT, "data/modeling/predict_dataset_2026.csv"))
@@ -21,7 +74,7 @@ def load_model_and_predict():
     train_df["date"] = pd.to_datetime(train_df["date"])
     pred_df["date"]  = pd.to_datetime(pred_df["date"])
 
-    cols = [c for c in FEATURE_COLS if c in train_df.columns and c in pred_df.columns]
+    cols = [c for c in TOP_FEATURES if c in train_df.columns and c in pred_df.columns]
 
     X_train = train_df[cols]
     y_train = train_df["postseason"]
@@ -30,34 +83,15 @@ def load_model_and_predict():
     sw = (0.3 + 0.7 * (train_df["season"] - s_min) / (s_max - s_min)).values
     pos_w = (y_train == 0).sum() / (y_train == 1).sum()
 
-    xgb = XGBClassifier(
-        n_estimators=200, max_depth=3, learning_rate=0.05,
-        subsample=0.7, colsample_bytree=0.6,
-        reg_alpha=1.0, reg_lambda=5.0, min_child_weight=10,
-        scale_pos_weight=pos_w, eval_metric="logloss", random_state=42,
-    )
-    lgbm = LGBMClassifier(
-        n_estimators=200, max_depth=4, learning_rate=0.05,
-        subsample=0.7, colsample_bytree=0.6,
-        reg_alpha=1.0, reg_lambda=5.0, min_child_samples=20,
-        scale_pos_weight=pos_w, random_state=42, verbose=-1,
-    )
-    rf = RandomForestClassifier(
-        n_estimators=300, max_depth=6, min_samples_leaf=20,
-        max_features="sqrt", class_weight="balanced",
-        random_state=42, n_jobs=-1,
-    )
+    lr, rf, xgb, lgbm = _build_models(pos_w)
 
+    lr.fit(X_train, y_train)
+    rf.fit(X_train, y_train, sample_weight=sw)
     xgb.fit(X_train, y_train, sample_weight=sw)
     lgbm.fit(X_train, y_train, sample_weight=sw)
-    rf.fit(X_train, y_train, sample_weight=sw)
 
     X_pred = pred_df[cols]
-    prob_raw = (
-        xgb.predict_proba(X_pred)[:, 1] +
-        lgbm.predict_proba(X_pred)[:, 1] +
-        rf.predict_proba(X_pred)[:, 1]
-    ) / 3
+    prob_raw = _ensemble_proba(lr, rf, xgb, lgbm, X_pred)
 
     pred_df = pred_df.copy()
     pred_df["prob_raw"]  = prob_raw

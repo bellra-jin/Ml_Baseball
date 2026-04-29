@@ -82,7 +82,7 @@ st.markdown(f"""
 st.markdown('<div class="section-title">📊 피처 중요도 Top 20</div>', unsafe_allow_html=True)
 st.markdown("""
 <div class="info-box">
-XGBoost · LightGBM · RandomForest 3개 모델의 정규화된 중요도 평균값입니다. &nbsp;|&nbsp;
+Strategy C의 트리 계열 3개 모델(XGBoost · LightGBM · RandomForest) 중요도 평균값입니다. &nbsp;|&nbsp;
 <span style="color:#2E8B57;font-weight:700;">■ dyn_</span>: 3년 평균 역가중 &nbsp;
 <span style="color:#2563A8;font-weight:700;">■ prev_</span>: 전년도 기록 &nbsp;
 <span style="color:#94A3B8;font-weight:700;">■</span>: 현재 시즌
