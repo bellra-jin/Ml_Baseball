@@ -2,6 +2,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
 
+import numpy as np
 import pandas as pd
 import streamlit as st
 from xgboost import XGBClassifier
@@ -12,17 +13,10 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 
-ROOT = os.path.join(os.path.dirname(__file__), "../../..")
+from src.utils.config import TOP_FEATURES
 
-TOP_FEATURES = [
-    "rank", "win_rate", "games_behind_5th",
-    "prev_pythagorean_win_rate", "prev_team_era", "prev_ops_concentration",
-    "prev_bb_rate", "prev_top5_hitter_ops_avg", "prev_ace_era",
-    "prev_run_differential", "prev_k_bb_ratio", "wins_to_5th",
-    "games_behind", "home_win_rate", "dyn_run_differential",
-    "prev_iso", "away_win_rate", "dyn_bb_rate",
-    "dyn_pythagorean_win_rate", "dyn_k_bb_ratio",
-]
+ROOT = os.path.join(os.path.dirname(__file__), "../../..")
+MODEL_CACHE_VERSION = "strategy_c_20_features_v2"
 
 
 def _build_models(pos_w):
@@ -67,7 +61,9 @@ def _ensemble_proba(lr, rf, xgb, lgbm, X):
 
 
 @st.cache_resource(show_spinner="Strategy C 앙상블 모델 학습 중... (첫 실행만 소요됩니다)")
-def load_model_and_predict():
+def load_model_and_predict(cache_version: str = MODEL_CACHE_VERSION):
+    _ = cache_version
+
     train_df = pd.read_csv(os.path.join(ROOT, "data/modeling/train_dataset.csv"))
     pred_df  = pd.read_csv(os.path.join(ROOT, "data/modeling/predict_dataset_2026.csv"))
 
@@ -115,3 +111,76 @@ def load_model_and_predict():
     ) / 3
 
     return pred_df, rank_df, importance, cols
+
+
+@st.cache_data(show_spinner="LOSO-CV 검증 실행 중... (첫 실행만 소요됩니다)")
+def run_loso_cv(cache_version: str = MODEL_CACHE_VERSION):
+    _ = cache_version
+    from sklearn.metrics import (
+        roc_auc_score, f1_score, precision_score, recall_score, brier_score_loss,
+    )
+
+    train_df = pd.read_csv(os.path.join(ROOT, "data/modeling/train_dataset.csv"))
+    train_df["date"] = pd.to_datetime(train_df["date"])
+    cols = [c for c in TOP_FEATURES if c in train_df.columns]
+    test_seasons = sorted(s for s in train_df["season"].unique() if s >= 2018)
+
+    metrics, oof_probs, oof_labels, cp_rows = [], [], [], []
+
+    for test_season in test_seasons:
+        tr = train_df[train_df["season"] != test_season]
+        te = train_df[train_df["season"] == test_season]
+        X_tr, y_tr = tr[cols], tr["postseason"]
+        X_te, y_te = te[cols], te["postseason"]
+
+        pos_w = (y_tr == 0).sum() / (y_tr == 1).sum()
+        s_min, s_max = tr["season"].min(), tr["season"].max()
+        sw = (0.3 + 0.7 * (tr["season"] - s_min) / (s_max - s_min)).values
+
+        lr, rf, xgb, lgbm = _build_models(pos_w)
+        lr.fit(X_tr, y_tr)
+        rf.fit(X_tr, y_tr, sample_weight=sw)
+        xgb.fit(X_tr, y_tr, sample_weight=sw)
+        lgbm.fit(X_tr, y_tr, sample_weight=sw)
+
+        te_p = _ensemble_proba(lr, rf, xgb, lgbm, X_te)
+        tr_p = _ensemble_proba(lr, rf, xgb, lgbm, X_tr)
+        te_bin = (te_p >= 0.5).astype(int)
+
+        metrics.append({
+            "season":    int(test_season),
+            "train_auc": float(roc_auc_score(y_tr, tr_p)),
+            "test_auc":  float(roc_auc_score(y_te, te_p)),
+            "f1":        float(f1_score(y_te, te_bin, zero_division=0)),
+            "precision": float(precision_score(y_te, te_bin, zero_division=0)),
+            "recall":    float(recall_score(y_te, te_bin, zero_division=0)),
+            "brier":     float(brier_score_loss(y_te, te_p)),
+        })
+        oof_probs.extend(te_p.tolist())
+        oof_labels.extend(y_te.tolist())
+
+        actual_top5 = set(te[te["postseason"] == 1]["team"].unique())
+        for cp_ratio, cp_label in [(0.5, "50%"), (0.75, "75%"), (0.9, "90%"), (1.0, "최종")]:
+            snap = (
+                te[te["games_played_ratio"] <= cp_ratio]
+                .sort_values("date")
+                .groupby("team")
+                .last()
+                .reset_index()
+            )
+            if snap.empty:
+                continue
+            snap_p = _ensemble_proba(lr, rf, xgb, lgbm, snap[cols])
+            pred_top5 = set(snap.assign(p=snap_p).nlargest(5, "p")["team"])
+            cp_rows.append({
+                "season":     int(test_season),
+                "checkpoint": cp_label,
+                "hit":        len(pred_top5 & actual_top5),
+            })
+
+    return (
+        pd.DataFrame(metrics),
+        np.array(oof_probs),
+        np.array(oof_labels),
+        pd.DataFrame(cp_rows),
+    )
