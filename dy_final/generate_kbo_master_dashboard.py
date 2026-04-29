@@ -306,7 +306,10 @@ def dataset_table() -> str:
     ]
     rows = []
     for category, filename, note in items:
-        df = read_csv(filename)
+        try:
+            df = read_csv(filename)
+        except FileNotFoundError:
+            continue
         years = "2022~2026" if "연도" in df.columns and df["연도"].nunique() > 1 else "2026" if "연도" in df.columns else "-"
         if category == "리그_타격/투구환경":
             pitch = read_csv("리그_투구환경.csv")

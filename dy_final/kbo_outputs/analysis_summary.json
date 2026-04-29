@@ -1,15 +1,15 @@
 {
   "data_dir": "C:\\Users\\Admin\\Documents\\GitHub\\Ml_Baseball\\data",
-  "out_dir": "C:\\Users\\Admin\\Documents\\Codex\\2026-04-28\\files-mentioned-by-the-user-data\\kbo_outputs",
+  "out_dir": "C:\\Users\\Admin\\Documents\\GitHub\\Ml_Baseball\\dy_final\\kbo_outputs",
   "training_rows": 4629,
-  "model_rows_total": 5160,
-  "latest_2026_date": "2026-04-24",
+  "model_rows_total": 5190,
+  "latest_2026_date": "2026-04-28",
   "predicted_top5": [
-    "LG",
     "KT",
-    "삼성",
+    "LG",
     "SSG",
-    "KIA"
+    "삼성",
+    "한화"
   ],
   "april_current_top5_overlap_mean": 3.0,
   "validation_april_ensemble_top5_overlap_mean": 3.0,

@@ -9,7 +9,8 @@ $ErrorActionPreference = "Stop"
 
 $ScriptRootPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 $CrawlerPath = Join-Path $ScriptRootPath "kbo_realtime_crawler.py"
-$NotebookOutputRunner = Join-Path $ScriptRootPath "run_kbo_notebook_outputs.py"
+$PipelineOutputRunner = Join-Path $ScriptRootPath "run_kbo_pipeline_outputs.py"
+$VisualizationPath = Join-Path $ScriptRootPath "generate_kbo_visualizations.py"
 $DashboardPath = Join-Path $ScriptRootPath "generate_kbo_master_dashboard.py"
 $LogDir = Join-Path $ScriptRootPath "logs"
 $Stamp = Get-Date -Format "yyyyMMdd_HHmmss"
@@ -27,7 +28,8 @@ try {
     Write-Log "KBO midnight update started."
     Write-Log "PythonExe: $PythonExe"
     Write-Log "CrawlerPath: $CrawlerPath"
-    Write-Log "NotebookOutputRunner: $NotebookOutputRunner"
+    Write-Log "PipelineOutputRunner: $PipelineOutputRunner"
+    Write-Log "VisualizationPath: $VisualizationPath"
     Write-Log "DashboardPath: $DashboardPath"
     Write-Log "Year: $Year"
     Write-Log "DataDir: $DataDir"
@@ -55,12 +57,19 @@ try {
         throw "Crawler failed with exit code $LASTEXITCODE"
     }
 
-    if (Test-Path -LiteralPath $NotebookOutputRunner) {
-        Write-Log "Refreshing notebook-derived prediction CSV files."
-        $rawYearDir = Join-Path $DataDir ([string]$Year)
-        & $PythonExe $NotebookOutputRunner --year $Year --raw-year-dir $rawYearDir *>&1 | Tee-Object -FilePath $LogFile -Append
+    if (Test-Path -LiteralPath $PipelineOutputRunner) {
+        Write-Log "Refreshing pipeline prediction CSV files."
+        & $PythonExe $PipelineOutputRunner --data-dir $DataDir *>&1 | Tee-Object -FilePath $LogFile -Append
         if ($LASTEXITCODE -ne 0) {
-            throw "Notebook output refresh failed with exit code $LASTEXITCODE"
+            throw "Pipeline output refresh failed with exit code $LASTEXITCODE"
+        }
+    }
+
+    if (Test-Path -LiteralPath $VisualizationPath) {
+        Write-Log "Regenerating visualization PNG files."
+        & $PythonExe $VisualizationPath *>&1 | Tee-Object -FilePath $LogFile -Append
+        if ($LASTEXITCODE -ne 0) {
+            throw "Visualization generation failed with exit code $LASTEXITCODE"
         }
     }
 

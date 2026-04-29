@@ -35,6 +35,19 @@ FILES = {
     "pitcher_detail": "투수_세부기록.csv",
 }
 
+RAW_FILES = {
+    "team_rank": "team_final_rank.csv",
+    "team_daily_rank": "team_daily_rank.csv",
+    "team_hitter": "team_hitter_basic.csv",
+    "team_pitcher": "team_pitcher_basic.csv",
+    "team_defense": "team_defense_basic.csv",
+    "team_runner": "team_runner_basic.csv",
+    "hitter_basic": "player_hitter_basic.csv",
+    "hitter_detail": "player_hitter_detail.csv",
+    "pitcher_basic": "player_pitcher_basic.csv",
+    "pitcher_detail": "player_pitcher_detail.csv",
+}
+
 
 COL = {
     "season": "연도",
@@ -306,8 +319,13 @@ def clean_rank_table(df: pd.DataFrame, season: int, daily: bool) -> pd.DataFrame
 
 
 def read_year_file(data_dir: Path, season: int, key: str) -> pd.DataFrame | None:
-    path = data_dir / str(season) / FILES[key]
-    if not path.exists():
+    candidates = [
+        data_dir / str(season) / FILES[key],
+        data_dir / "raw" / str(season) / RAW_FILES[key],
+        data_dir / "raw" / str(season) / FILES[key],
+    ]
+    path = next((p for p in candidates if p.exists()), None)
+    if path is None:
         return None
     df = read_csv(path)
     df[COL["season"]] = season
