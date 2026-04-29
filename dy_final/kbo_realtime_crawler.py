@@ -13,6 +13,7 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import time
@@ -275,13 +276,59 @@ class KBOCrawler:
         return self.save_rows("팀_일자별순위", headers, all_rows)
 
     def crawl_player_movement(self) -> Path:
-        soup = self.get("/Player/Trade.aspx")
-        headers, rows = self.parse_table(soup)
-        if rows and headers:
-            date_idx = headers.index("날짜") if "날짜" in headers else None
-            if date_idx is not None:
-                rows = [row for row in rows if len(row) > date_idx and str(row[date_idx]).startswith(str(self.year))]
-        return self.save_rows(f"{self.year}_선수_이동_현황", headers, rows)
+        """Crawl player movement rows from the KBO Ajax endpoint.
+
+        The visible Trade.aspx page renders an empty table shell first and then
+        fills rows through /ws/Player.asmx/GetTradeList. Reading only the HTML
+        therefore saves a header-only CSV, so this method uses the same Ajax
+        endpoint as the official page.
+        """
+        path = "/ws/Player.asmx/GetTradeList"
+        headers = ["날짜", "항목", "팀", "선수", "비고"]
+        all_rows: list[list[str]] = []
+        page_no = 1
+        list_count = 100
+
+        while True:
+            payload = {
+                "seasonId": str(self.year),
+                "monthId": "0",
+                "bdSc": "0",
+                "teamName": "",
+                "searchIf": "",
+                "pageNo": str(page_no),
+                "listCount": str(list_count),
+            }
+            ajax_headers = dict(REQUEST_HEADERS)
+            ajax_headers.update(
+                {
+                    "Referer": BASE_URL + "/Player/Trade.aspx",
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Accept": "application/json, text/javascript, */*; q=0.01",
+                }
+            )
+            url = BASE_URL + path
+            resp = self.session.post(url, data=payload, headers=ajax_headers, timeout=20)
+            resp.raise_for_status()
+            data = resp.json()
+
+            page_rows: list[list[str]] = []
+            for item in data.get("rows", []):
+                cells = item.get("row", [])
+                row = [str(cell.get("Text", "")).strip() for cell in cells[: len(headers)]]
+                if len(row) == len(headers) and row[0].startswith(str(self.year)):
+                    page_rows.append(row)
+
+            all_rows.extend(page_rows)
+            total_cnt = int(data.get("totalCnt") or len(all_rows))
+            print(f"  movement page {page_no}: {len(page_rows):,} rows / total {total_cnt:,}")
+
+            if page_no * list_count >= total_cnt or not page_rows:
+                break
+            page_no += 1
+            time.sleep(self.delay)
+
+        return self.save_rows(f"{self.year}_선수_이동_현황", headers, all_rows)
 
     def extract_player_ids(self, soup: BeautifulSoup, position: str) -> dict[str, str]:
         players = {}

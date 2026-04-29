@@ -143,6 +143,79 @@ def load_prediction() -> pd.DataFrame:
     return df.drop(columns=unnamed, errors="ignore")
 
 
+def read_csv_path(path: Path) -> pd.DataFrame:
+    for enc in ("utf-8-sig", "utf-8", "cp949", "euc-kr"):
+        try:
+            return pd.read_csv(path, encoding=enc)
+        except Exception:
+            continue
+    raise ValueError(f"CSV read failed: {path}")
+
+
+def latest_2026_date_label() -> str:
+    candidates = [
+        ROOT_DIR / "kbo_outputs" / "2026_postseason_predictions.csv",
+        ROOT_DIR.parent / "data" / "2026" / "팀_일자별순위.csv",
+    ]
+    for path in candidates:
+        if not path.exists():
+            continue
+        try:
+            df = read_csv_path(path)
+        except Exception:
+            continue
+        date_col = "date" if "date" in df.columns else "날짜" if "날짜" in df.columns else None
+        if not date_col:
+            continue
+        dates = pd.to_datetime(df[date_col], errors="coerce").dropna()
+        if not dates.empty:
+            latest = dates.max()
+            return f"{latest.month}/{latest.day}"
+    return "2026"
+
+
+def load_movement() -> pd.DataFrame:
+    candidates = [
+        ROOT_DIR / "선수이동현황_통합.csv",
+        ROOT_DIR.parent / "data" / "2026" / "2026_선수_이동_현황.csv",
+    ]
+    for path in candidates:
+        if path.exists():
+            try:
+                return read_csv_path(path)
+            except Exception:
+                continue
+    return pd.DataFrame(columns=["날짜", "항목", "팀", "선수", "비고"])
+
+
+def movement_summary_cards() -> str:
+    df = load_movement()
+    total = len(df)
+    if total == 0 or "항목" not in df.columns:
+        return ''.join([
+            '<div class="card"><div class="cl">선수 이동 데이터</div><div class="cv">0건</div><div class="cs dn">공식 API 응답 없음</div></div>',
+            '<div class="card"><div class="cl">주요 항목</div><div class="cv">-</div><div class="cs">수집 후 자동 갱신</div></div>',
+            '<div class="card"><div class="cl">전력 변화 이벤트</div><div class="cv">-</div><div class="cs">FA/트레이드 기준</div></div>',
+        ])
+
+    counts = df["항목"].fillna("-").astype(str).value_counts()
+    top_name = counts.index[0]
+    top_count = int(counts.iloc[0])
+    power_events = int(df["항목"].isin(["FA 계약", "트레이드", "FA 보상선수", "해외 복귀 FA 계약"]).sum())
+    latest = "-"
+    if "날짜" in df.columns:
+        dates = pd.to_datetime(df["날짜"], errors="coerce").dropna()
+        if not dates.empty:
+            d = dates.max()
+            latest = f"{d.month}/{d.day}"
+
+    return ''.join([
+        f'<div class="card"><div class="cl">선수 이동 데이터</div><div class="cv">{total:,}건</div><div class="cs up">KBO 공식 API 복구 완료 · 최신 {latest}</div></div>',
+        f'<div class="card"><div class="cl">최다 항목</div><div class="cv">{escape(top_name)}</div><div class="cs">{top_count:,}건으로 가장 많음</div></div>',
+        f'<div class="card"><div class="cl">전력 변화 이벤트</div><div class="cv">{power_events:,}건</div><div class="cs">FA/트레이드/보상선수 기준</div></div>',
+    ])
+
+
 def build_summary_cards(league_bat: pd.DataFrame, league_pit: pd.DataFrame) -> str:
     league_bat = league_bat.sort_values("연도")
     league_pit = league_pit.sort_values("연도")
@@ -301,7 +374,6 @@ def dataset_table() -> str:
         ("타자_마스터", "타자_마스터.csv", "기본+세부 JOIN · OPS+, BABIP, ISO 등 파생지표 포함"),
         ("투수_마스터", "투수_마스터.csv", "기본+세부 JOIN · ERA+, FIP-, K9, BB9 포함"),
         ("팀_순위변동성", "팀_순위변동성.csv", "평균순위·표준편차·최고/최저순위·월별 평균순위"),
-        ("선수이동현황", "선수이동현황_통합.csv", "2026 선수 이동/부상/등록 말소 흐름"),
         ("리그_타격/투구환경", "리그_타격환경.csv", "연도별 리그 평균 지표 · 2026은 진행중 기준"),
     ]
     rows = []
@@ -329,7 +401,7 @@ def html_document() -> str:
     pred = load_prediction()
     league_bat = read_csv("리그_타격환경.csv")
     league_pit = read_csv("리그_투구환경.csv")
-    latest_date = "4/24"
+    latest_date = latest_2026_date_label()
 
     css = r'''
 <style>
