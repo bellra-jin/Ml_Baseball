@@ -9,7 +9,7 @@ BASE / 3yr+trend / 3yr_only 세 가지 피처셋을 비교한다.
 
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../.."))
 
 import pandas as pd
 import numpy as np
@@ -18,14 +18,20 @@ import matplotlib.ticker as mticker
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import roc_auc_score
-
 from src.utils.config import FEATURE_COLS as BASE_COLS
+from src.evaluation.metrics import (
+    evaluate_binary_model,
+    checkpoint_hits,
+    print_checkpoint_report,
+    print_metrics,
+)
 
 plt.rcParams["font.family"] = "AppleGothic"
 plt.rcParams["axes.unicode_minus"] = False
 
-BASE = os.path.join(os.path.dirname(__file__), "../../..")
+BASE   = os.path.join(os.path.dirname(__file__), "../../../..")
+ASSETS = os.path.join(os.path.dirname(__file__), "assets")
+os.makedirs(ASSETS, exist_ok=True)
 
 # ──────────────────────────────────────────────
 # 1. 피처 정의
@@ -158,9 +164,9 @@ for label, ratio in checkpoints.items():
 
     hits, teams = {}, {}
     for cfg, _ in configs:
-        top5         = set(latest.nlargest(5, f"prob_{cfg}_norm")["team"])
-        hits[cfg]    = len(top5 & actual_top5)
-        teams[cfg]   = sorted(top5)
+        top5       = set(latest.nlargest(5, f"prob_{cfg}_norm")["team"])
+        hits[cfg]  = len(top5 & actual_top5)
+        teams[cfg] = sorted(top5)
 
     print(f"{label:<16} {hits['BASE']}/5  {hits['3yr']}/5  {hits['3yr_only']}/5")
     print(f"  BASE:     {teams['BASE']}")
@@ -168,10 +174,10 @@ for label, ratio in checkpoints.items():
     print(f"  3yr_only: {teams['3yr_only']}")
     print()
 
-print("ROC-AUC:")
+print("ROC-AUC / F1 / Accuracy:")
 for cfg, _ in configs:
-    auc = roc_auc_score(y_test, test[f"prob_{cfg}"])
-    print(f"  {cfg}: {auc:.4f}")
+    m = evaluate_binary_model(y_test, test[f"prob_{cfg}"])
+    print_metrics(m, label=cfg)
 
 # ──────────────────────────────────────────────
 # 6. 최종 시점 바 차트
@@ -192,7 +198,7 @@ for ax, (cfg, _) in zip(axes, configs):
                 f"{val:.3f}", va="center", fontsize=8)
 
 plt.tight_layout()
-out = os.path.join(BASE, "data/modeling/validate_2024_bar.png")
+out = os.path.join(ASSETS, "validate_2024_bar.png")
 plt.savefig(out, dpi=120)
 plt.show()
 print(f"\n차트 저장: {out}")
@@ -229,7 +235,7 @@ ax.axhline(5, color="gray", linestyle="--", linewidth=1, alpha=0.5)
 ax.set_title("시점별 포스트시즌 예측 적중률\nBASE vs 3yr+trend vs 3yr_only (2024 검증)")
 ax.legend(fontsize=11)
 plt.tight_layout()
-out2 = os.path.join(BASE, "data/modeling/validate_2024_checkpoint.png")
+out2 = os.path.join(ASSETS, "validate_2024_checkpoint.png")
 plt.savefig(out2, dpi=120)
 plt.show()
 print(f"차트 저장: {out2}")
@@ -258,7 +264,7 @@ ax.set_title(
 ax.legend(loc="upper left", ncol=2, fontsize=9)
 ax.xaxis.set_major_locator(mticker.MultipleLocator(18))
 plt.tight_layout()
-out3 = os.path.join(BASE, "data/modeling/validate_2024_trend.png")
+out3 = os.path.join(ASSETS, "validate_2024_trend.png")
 plt.savefig(out3, dpi=120)
 plt.show()
 print(f"차트 저장: {out3}")

@@ -35,7 +35,7 @@ PREDICTIONS_DIR = DATA_DIR / "predictions"
 # ─────────────────────────────────────────────
 
 # 모델, 리포트 등 산출물 전체 폴더
-ARTIFACTS_DIR = BASE_DIR / "artifacts"
+REPORT_DIR = ARTIFACTS_DIR / "reports"
 
 # 학습된 모델 파일 저장 폴더
 MODEL_DIR = ARTIFACTS_DIR / "models"

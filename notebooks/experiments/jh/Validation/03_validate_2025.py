@@ -9,7 +9,7 @@
 
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../.."))
 
 import pandas as pd
 import numpy as np
@@ -18,14 +18,20 @@ import matplotlib.ticker as mticker
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import roc_auc_score
-
 from src.utils.config import FEATURE_COLS
+from src.evaluation.metrics import (
+    evaluate_binary_model,
+    checkpoint_hits,
+    print_checkpoint_report,
+    print_metrics,
+)
 
 plt.rcParams["font.family"] = "AppleGothic"
 plt.rcParams["axes.unicode_minus"] = False
 
-BASE = os.path.join(os.path.dirname(__file__), "../../..")
+BASE   = os.path.join(os.path.dirname(__file__), "../../../..")
+ASSETS = os.path.join(os.path.dirname(__file__), "assets")
+os.makedirs(ASSETS, exist_ok=True)
 
 # ──────────────────────────────────────────────
 # 1. 데이터 로드
@@ -111,20 +117,13 @@ checkpoints = {
 # 실제 정답 (검증용 — 실제 예측 시엔 없는 정보)
 actual_top5 = set(pred[pred["postseason"] == 1]["team"].unique())
 print(f"[실제 2025 포스트시즌] {sorted(actual_top5)}\n")
-print(f"{'시점':<16} {'예측 상위 5팀':<35} {'적중':>6}")
-print("─" * 62)
 
-results = {}
-for label, ratio in checkpoints.items():
-    snap   = pred[pred["games_played_ratio"] <= ratio]
-    latest = snap.sort_values("date").groupby("team").last().reset_index()
-    top5   = set(latest.nlargest(5, "prob")["team"])
-    hit    = len(top5 & actual_top5)
-    results[label] = {"top5": sorted(top5), "hit": hit}
-    print(f"{label:<16} {str(sorted(top5)):<35} {hit}/5")
+results = checkpoint_hits(pred, "prob", actual_top5, checkpoints)
+print_checkpoint_report(results)
 
-auc = roc_auc_score(pred["postseason"], pred["prob_raw"])
-print(f"\nROC-AUC: {auc:.4f}")
+metrics = evaluate_binary_model(pred["postseason"], pred["prob_raw"])
+print()
+print_metrics(metrics, label="2025 검증")
 
 # ──────────────────────────────────────────────
 # 5. 확률 추이 차트
@@ -150,7 +149,7 @@ ax.set_title(
 ax.legend(loc="upper left", ncol=2, fontsize=9)
 ax.xaxis.set_major_locator(mticker.MultipleLocator(18))
 plt.tight_layout()
-plt.savefig(os.path.join(BASE, "data/modeling/validate_2025_trend.png"), dpi=120)
+plt.savefig(os.path.join(ASSETS, "validate_2025_trend.png"), dpi=120)
 plt.show()
 
 # ──────────────────────────────────────────────
@@ -173,7 +172,7 @@ for bar, val in zip(bars, final["prob"]):
     ax.text(val + 0.01, bar.get_y() + bar.get_height() / 2,
             f"{val:.3f}", va="center", fontsize=9)
 plt.tight_layout()
-plt.savefig(os.path.join(BASE, "data/modeling/validate_2025_bar.png"), dpi=120)
+plt.savefig(os.path.join(ASSETS, "validate_2025_bar.png"), dpi=120)
 plt.show()
 
-print("\n차트 저장 완료: data/modeling/validate_2025_*.png")
+print("\n차트 저장 완료: notebooks/experiments/jh/Validation/assets/validate_2025_*.png")
