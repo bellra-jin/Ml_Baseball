@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KBO 2022~2026 Master Dashboard</title>
+<style>
+*{box-sizing:border-box}
+.w{padding:.5rem 0;font-size:13px;color:var(--color-text-primary)}
+h3{font-size:14px;font-weight:500;margin:1.6rem 0 .7rem;color:var(--color-text-primary);border-bottom:.5px solid var(--color-border-tertiary);padding-bottom:5px}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:1rem}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem}
+.card{background:var(--color-background-secondary);border-radius:9px;padding:.75rem .9rem}
+.cl{font-size:10px;color:var(--color-text-secondary);margin-bottom:2px;text-transform:uppercase;letter-spacing:.3px}
+.cv{font-size:15px;font-weight:500}
+.cs{font-size:11px;margin-top:3px;line-height:1.35}
+.up{color:#D85A30}.dn{color:#185FA5}.eq{color:var(--color-text-tertiary)}
+.live{display:inline-block;font-size:9px;background:#E8593C;color:#fff;padding:1px 5px;border-radius:3px;margin-left:4px;font-weight:500;vertical-align:middle}
+
+table{width:100%;border-collapse:collapse;font-size:11.5px;margin-bottom:.5rem}
+th{font-weight:500;padding:5px 7px;text-align:center;border-bottom:.5px solid var(--color-border-secondary);color:var(--color-text-secondary);font-size:10px}
+th:first-child{text-align:left}
+td{padding:4px 7px;border-bottom:.5px solid var(--color-border-tertiary);text-align:center}
+td:first-child{text-align:left;font-weight:500}
+
+.rd{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;font-size:10px;font-weight:500}
+.r1{background:#EAF3DE;color:#27500A}
+.r2{background:#E1F5EE;color:#0F6E56}
+.r3{background:#E6F1FB;color:#0C447C}
+.r45{background:#EEEDFE;color:#3C3489}
+.r67{background:#FAEEDA;color:#633806}
+.r8{background:#FAECE7;color:#712B13}
+.r910{background:#FCEBEB;color:#501313}
+
+.pill{display:inline-block;font-size:9.5px;padding:1px 7px;border-radius:10px;font-weight:500}
+.p-g{background:#E1F5EE;color:#0F6E56}
+.p-b{background:#E6F1FB;color:#185FA5}
+.p-r{background:#FAECE7;color:#993C1D}
+.p-p{background:#EEEDFE;color:#3C3489}
+.p-y{background:#FAEEDA;color:#633806}
+
+.trend-bar{display:flex;align-items:center;gap:3px;margin:1px 0}
+.tb{width:14px;height:14px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;flex-shrink:0}
+</style>
+</head>
+<body>
+<div class="w">
+<h3>리그 환경 5년 트렌드</h3>
+<div class="g5">
+
+  <div class="card">
+    <div class="cl">리그 평균 타율</div>
+    <div class="cv">.260→.264→.277→.262→<span class="dn">.260</span></div>
+    <div class="cs dn">▼ 2026 초반 하락 신호</div>
+  </div>
+
+  <div class="card">
+    <div class="cl">규정이닝 평균 ERA</div>
+    <div class="cv">4.06→4.14→4.91→4.31→<span class="eq">4.31</span></div>
+    <div class="cs eq">→ 큰 변화 없음</div>
+  </div>
+
+  <div class="card">
+    <div class="cl">평균 WHIP</div>
+    <div class="cv">1.38→1.41→1.50→1.40→<span class="dn">1.45</span></div>
+    <div class="cs dn">▼ 2026 초반 하락 신호</div>
+  </div>
+
+  <div class="card">
+    <div class="cl">평균 K/9</div>
+    <div class="cv">2.16→1.96→2.07→2.18→<span class="dn">1.90</span></div>
+    <div class="cs dn">▼ 2026 초반 하락 신호</div>
+  </div>
+
+  <div class="card">
+    <div class="cl">규정이닝 투수 수</div>
+    <div class="cv">10→10→10→10→<span style="color:#534AB7">10명</span></div>
+    <div class="cs" style="color:#534AB7">⚡ 2026 진행중 기준</div>
+  </div>
+</div>
+
+<h3>5년 팀 순위 흐름표 <span class="live">LIVE 4/26</span></h3>
+<table>
+  <tr>
+    <th>팀</th><th>2022</th><th>2023</th><th>2024</th><th>2025</th><th>2026 현재</th>
+    <th>5년 궤적</th><th>2026 ERA</th><th>2026 승률</th><th>PO 확률</th><th>예측</th>
+  </tr>
+
+  <tr>
+    <td>LG</td>
+    <td><span class="rd r3">3</span></td><td><span class="rd r1">1</span></td><td><span class="rd r3">3</span></td><td><span class="rd r1">1</span></td><td><span class="rd r2">2</span></td>
+    <td><span class="pill p-g">5년 연속 상위권</span></td>
+    <td>3.44</td>
+    <td>.667</td>
+    <td>96.1%</td>
+    <td><span class="pill p-g">진출</span></td>
+  </tr>
+
+  <tr>
+    <td>KT</td>
+    <td><span class="rd r45">4</span></td><td><span class="rd r2">2</span></td><td><span class="rd r45">5</span></td><td><span class="rd r67">6</span></td><td><span class="rd r1">1</span></td>
+    <td><span class="pill p-p">2026 선두 도약</span></td>
+    <td>3.80</td>
+    <td>.680</td>
+    <td>93.3%</td>
+    <td><span class="pill p-g">진출</span></td>
+  </tr>
+
+  <tr>
+    <td>SSG</td>
+    <td><span class="rd r1">1</span></td><td><span class="rd r3">3</span></td><td><span class="rd r67">6</span></td><td><span class="rd r3">3</span></td><td><span class="rd r3">3</span></td>
+    <td><span class="pill p-b">상위권 재진입</span></td>
+    <td>4.18</td>
+    <td>.625</td>
+    <td>90.3%</td>
+    <td><span class="pill p-g">진출</span></td>
+  </tr>
+
+  <tr>
+    <td>삼성</td>
+    <td><span class="rd r67">7</span></td><td><span class="rd r8">8</span></td><td><span class="rd r2">2</span></td><td><span class="rd r45">4</span></td><td><span class="rd r45">4</span></td>
+    <td><span class="pill p-b">상위권 재진입</span></td>
+    <td>4.25</td>
+    <td>.522</td>
+    <td>53.9%</td>
+    <td><span class="pill p-g">진출</span></td>
+  </tr>
+
+  <tr>
+    <td>KIA</td>
+    <td><span class="rd r45">5</span></td><td><span class="rd r67">6</span></td><td><span class="rd r1">1</span></td><td><span class="rd r8">8</span></td><td><span class="rd r45">5</span></td>
+    <td><span class="pill p-g">하위권→5강권 반등</span></td>
+    <td>4.50</td>
+    <td>.500</td>
+    <td>44.3%</td>
+    <td><span class="pill p-g">진출</span></td>
+  </tr>
+
+  <tr>
+    <td>NC</td>
+    <td><span class="rd r67">6</span></td><td><span class="rd r45">4</span></td><td><span class="rd r910">9</span></td><td><span class="rd r45">5</span></td><td><span class="rd r67">6</span></td>
+    <td><span class="pill p-y">등락 폭 큰 V자 흐름</span></td>
+    <td>4.18</td>
+    <td>.458</td>
+    <td>30.5%</td>
+    <td><span class="pill p-r">미진출</span></td>
+  </tr>
+
+  <tr>
+    <td>한화</td>
+    <td><span class="rd r910">10</span></td><td><span class="rd r910">9</span></td><td><span class="rd r8">8</span></td><td><span class="rd r2">2</span></td><td><span class="rd r67">7</span></td>
+    <td><span class="pill p-y">등락 폭 큰 V자 흐름</span></td>
+    <td>5.23</td>
+    <td>.417</td>
+    <td>30.1%</td>
+    <td><span class="pill p-r">미진출</span></td>
+  </tr>
+
+  <tr>
+    <td>두산</td>
+    <td><span class="rd r910">9</span></td><td><span class="rd r45">5</span></td><td><span class="rd r45">4</span></td><td><span class="rd r910">9</span></td><td><span class="rd r67">7</span></td>
+    <td><span class="pill p-y">등락 폭 큰 V자 흐름</span></td>
+    <td>4.52</td>
+    <td>.417</td>
+    <td>26.2%</td>
+    <td><span class="pill p-r">미진출</span></td>
+  </tr>
+
+  <tr>
+    <td>롯데</td>
+    <td><span class="rd r8">8</span></td><td><span class="rd r67">7</span></td><td><span class="rd r67">7</span></td><td><span class="rd r67">7</span></td><td><span class="rd r910">10</span></td>
+    <td><span class="pill p-r">하위권 고착</span></td>
+    <td>4.60</td>
+    <td>.304</td>
+    <td>5.8%</td>
+    <td><span class="pill p-r">미진출</span></td>
+  </tr>
+
+  <tr>
+    <td>키움</td>
+    <td><span class="rd r2">2</span></td><td><span class="rd r910">10</span></td><td><span class="rd r910">10</span></td><td><span class="rd r910">10</span></td><td><span class="rd r910">9</span></td>
+    <td><span class="pill p-r">하위권 고착</span></td>
+    <td>4.40</td>
+    <td>.400</td>
+    <td>4.4%</td>
+    <td><span class="pill p-r">미진출</span></td>
+  </tr>
+</table>
+
+<h3>2026 초반 주목 포인트 <span class="live">LIVE</span></h3>
+<div class="g3">
+
+  <div class="card">
+    <div class="cl" style="color:#27500A;font-weight:500">예측 진출권 Top4</div>
+    <div class="cv" style="font-size:13px">LG 96.1% · KT 93.3% · SSG 90.3% · 삼성 53.9%</div>
+    <div class="cs">노트북 CELL 8의 앙상블 ML 결과를 그대로 반영했습니다.</div>
+  </div>
+
+  <div class="card">
+    <div class="cl" style="color:#0C447C;font-weight:500">KT 선두권 페이스</div>
+    <div class="cv" style="font-size:13px">17승 8패 · ERA 3.80</div>
+    <div class="cs">현재 1위, 승률 .680. 예측 확률도 최상위권입니다.</div>
+  </div>
+
+  <div class="card">
+    <div class="cl" style="color:#993C1D;font-weight:500">KIA 순위 대비 예측 경고</div>
+    <div class="cv" style="font-size:13px">현재 5위 · 예측 44.3%</div>
+    <div class="cs">현재 순위만으로는 좋아 보여도 팀 세부 지표를 섞은 모델에서는 위험 신호가 잡혔습니다.</div>
+  </div>
+
+  <div class="card">
+    <div class="cl" style="color:#27500A;font-weight:500">투수 강세 시즌 조짐</div>
+    <div class="cv" style="font-size:13px">리그 ERA 4.31</div>
+    <div class="cs">2026은 진행중 시즌이라 표본 주의가 필요하지만, 현재 리그 평균 ERA는 최근 5년 중 낮은 축입니다.</div>
+  </div>
+
+  <div class="card">
+    <div class="cl" style="color:#501313;font-weight:500">한화 ERA 경고등</div>
+    <div class="cv" style="font-size:13px">팀 ERA 5.23 · 순위 7위</div>
+    <div class="cs">실점 억제력이 가장 큰 리스크로 보입니다. 불펜/선발 안정화 여부가 순위 반등의 핵심입니다.</div>
+  </div>
+
+  <div class="card">
+    <div class="cl" style="color:#3C3489;font-weight:500">데이터 현황</div>
+    <div class="cv" style="font-size:13px">노트북 실행 결과 반영</div>
+    <div class="cs">예측 CSV와 team_master_2022_2026.csv를 우선 사용해 HTML을 생성했습니다.</div>
+  </div>
+</div>
+
+<h3>클린 데이터셋 현황</h3>
+<table>
+  <tr><th>카테고리</th><th>적재 행수</th><th>컬럼</th><th>연도</th><th>비고</th></tr>
+<tr><td>2026_예측결과</td><td>10행</td><td>10열</td><td>-</td><td>노트북 CELL 8 앙상블 ML 예측 결과</td></tr>
+<tr><td>team_master_2022_2026</td><td>50행</td><td>50열</td><td>2022~2026</td><td>노트북 CELL 5 이후 저장된 팀 종합 마스터</td></tr>
+<tr><td>리그_타격/투구환경</td><td>10행</td><td>9열</td><td>2022~2026</td><td>연도별 리그 평균 지표 · 2026은 진행중 기준</td></tr>
+</table>
+
+</div>
+</body>
+</html>

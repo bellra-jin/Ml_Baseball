@@ -1,0 +1,32 @@
+{
+  "input_raw_dir": "C:\\Users\\Admin\\Documents\\GitHub\\Ml_Baseball\\data\\raw",
+  "input_processed_dir": "C:\\Users\\Admin\\Documents\\GitHub\\Ml_Baseball\\data\\processed",
+  "output_dir": "C:\\Users\\Admin\\Documents\\GitHub\\Ml_Baseball\\notebooks\\experiments\\dy",
+  "years": [
+    2022,
+    2023,
+    2024,
+    2025,
+    2026
+  ],
+  "training_rows": 6125,
+  "latest_2026_date": "2026-04-26",
+  "predicted_top5": [
+    "LG",
+    "KT",
+    "SSG",
+    "삼성",
+    "KIA"
+  ],
+  "generated_pngs": [
+    "01_league_trend.png",
+    "02_rank_heatmap.png",
+    "03_era_winrate.png",
+    "04_playoff_boxplot.png",
+    "05_transfer.png",
+    "06_feature_importance.png",
+    "07_playoff_prob.png",
+    "08_apr_vs_final.png",
+    "09_cluster_pca.png"
+  ]
+}
