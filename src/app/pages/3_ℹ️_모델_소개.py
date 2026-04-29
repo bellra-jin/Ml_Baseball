@@ -22,16 +22,6 @@ with st.sidebar:
         <div style="font-size:0.78rem; opacity:0.65; margin-top:2px;">포스트시즌 예측 대시보드</div>
     </div>
     """, unsafe_allow_html=True)
-    st.markdown("---")
-    st.markdown("""
-**📌 페이지 안내**
-- **홈** — 예측 요약 & 순위
-- **📈 추이 분석** — 확률 추이 & 순위 변화
-- **🔍 피처 분석** — 중요도 & 산점도 & 히트맵
-- **🧪 검증 리포트** — 과적합 & 확률 검증
-- **📝 분석 보고서** — 예측 해석 & 팀별 리포트
-- **ℹ️ 모델 소개** — 모델 구성 & 피처 정의
-    """)
 
 # ── 헤더 ─────────────────────────────────────────
 st.markdown("""
@@ -53,25 +43,25 @@ st.markdown('<div class="section-title">🤖 모델 구성</div>', unsafe_allow_
 
 def _model_card(icon, name, color, desc):
     return (
-        f'<div style="background:white;border-radius:16px;padding:13px 20px;'
+        f'<div style="background:white;border-radius:16px;padding:16px 20px;'
         f'box-shadow:0 2px 12px rgba(0,0,0,0.07);border-top:5px solid {color};'
-        f'min-height:180px;">'
-        f'<div style="font-size:1.6rem;margin-bottom:8px;">{icon}</div>'
+        f'height:200px;display:flex;flex-direction:column;">'
+        f'<div style="font-size:1.6rem;margin-bottom:6px;">{icon}</div>'
         f'<div style="font-size:1.0rem;font-weight:900;color:{color};margin-bottom:8px;">{name}</div>'
-        f'<div style="font-size:0.82rem;color:#475569;line-height:1.7;">{desc}</div>'
+        f'<div style="font-size:0.82rem;color:#475569;line-height:1.7;flex:1;overflow:hidden;">{desc}</div>'
         f'</div>'
     )
 
 c1, c2, c3, c4 = st.columns(4)
 model_cards = [
     (c1, "📈", "LogisticRegression", "#0891B2",
-     "표준화와 중앙값 대체를 포함한 선형 기준 모델. 강한 규제로 초반 시즌 데이터의 과적합을 완화합니다."),
+     "C=0.1 L2 규제와 class_weight='balanced'를 적용한 선형 기준 모델. 시즌 초반 표본이 작은 환경에서도 안정적인 기준 확률을 제공합니다."),
     (c2, "🌳", "RandomForest",       "#7C3AED",
-     "얕은 트리 배깅 앙상블. 분산을 낮춰 날짜별 예측 흐름을 안정적으로 잡아줍니다."),
+     "max_depth=4, min_samples_leaf=20으로 제한한 배깅 앙상블. 예측 분산을 낮추고 날짜별 확률 추이를 안정적으로 유지합니다."),
     (c3, "🌲", "lightXGB",           "#16A34A",
-     "얕은 XGBoost 설정. 부스팅 모델의 표현력은 살리되 정규화와 작은 트리로 과적합을 억제합니다."),
+     "n_estimators=40, max_depth=2의 저복잡도 XGBoost. 비선형 패턴을 포착하면서도 라운드와 깊이를 제한해 과적합을 억제합니다."),
     (c4, "💡", "lightLGBM",          "#D97706",
-     "얕은 LightGBM 설정. XGBoost와 다른 분기 방식으로 비슷한 신호를 교차 확인합니다."),
+     "n_estimators=40, max_depth=2의 저복잡도 LightGBM. leaf-wise 분기로 XGBoost와 독립적인 관점에서 동일 신호를 교차 검증합니다."),
 ]
 for col, icon, name, color, desc in model_cards:
     with col:
@@ -90,9 +80,9 @@ st.markdown("""
                 📌 KBO 데이터의 특성
             </div>
             <div style="font-size:0.82rem;color:#475569;line-height:1.8;">
-                KBO 시즌 데이터는 팀 수(10팀) × 시즌(9년) × 날짜 단위로 구성되어
-                샘플 수가 많지 않습니다. 딥러닝보다 <b>소규모 테이블 데이터에서 강점을
-                보이는 트리 기반 앙상블 모델</b>이 적합합니다.
+                KBO 데이터는 10팀 × 9시즌 × 날짜 단위 스냅샷으로 구성되어 실제 학습
+                가능한 행 수가 수천 건에 불과합니다. 대규모 데이터를 전제로 하는 딥러닝보다
+                <b>소규모 테이블 데이터에서 강점을 보이는 트리 기반 앙상블</b>이 적합합니다.
             </div>
         </div>
         <div>
@@ -100,9 +90,9 @@ st.markdown("""
                 📌 단일 모델의 한계 보완
             </div>
             <div style="font-size:0.82rem;color:#475569;line-height:1.8;">
-                LogisticRegression은 보수적인 기준선을 제공하고, XGBoost · LightGBM은
-                비선형 신호를 포착하며, RandomForest는 분산을 낮춥니다. <b>소프트 보팅으로 네 모델을 결합해
-                편향-분산 균형</b>을 맞췄습니다.
+                LR은 과도한 비선형 학습을 막는 보수적 기준선을 제공하고, XGBoost·LightGBM은
+                비선형 패턴을 포착하며, RF는 예측 분산을 낮춥니다. 네 모델의 predict_proba를
+                평균하는 <b>소프트 보팅</b>으로 편향-분산 균형을 맞췄습니다.
             </div>
         </div>
         <div>
@@ -110,8 +100,9 @@ st.markdown("""
                 📌 피처 중요도 해석 가능성
             </div>
             <div style="font-size:0.82rem;color:#475569;line-height:1.8;">
-                피처 중요도는 트리 계열 3개 모델(XGBoost · LightGBM · RandomForest)의
-                <b>정규화 중요도 평균</b>으로 계산합니다. LR은 예측 앙상블에는 포함하되 중요도 집계에서는 제외합니다.
+                피처 중요도는 트리 기반 3개 모델(RF, XGBoost, LightGBM)의 feature_importances_를
+                각각 [0,1]로 정규화한 뒤 <b>평균</b>해 산출합니다. LR은 예측 앙상블에 포함되지만
+                중요도 속성이 다른 방식으로 계산되어 집계에서 제외합니다.
             </div>
         </div>
         <div>
@@ -119,8 +110,9 @@ st.markdown("""
                 📌 클래스 불균형 대응
             </div>
             <div style="font-size:0.82rem;color:#475569;line-height:1.8;">
-                LR · RandomForest는 <b>class_weight='balanced'</b>, 부스팅 모델은
-                <b>scale_pos_weight</b>를 적용해 시즌별 스냅샷의 클래스 불균형을 보정했습니다.
+                포스트시즌 진출팀(5팀)은 전체(10팀)의 절반이지만, 날짜별 스냅샷 단위로는
+                불균형이 더 심해집니다. LR·RF는 <b>class_weight='balanced'</b>, 부스팅 모델은
+                <b>scale_pos_weight</b>로 이 불균형을 보정했습니다.
             </div>
         </div>
     </div>
@@ -162,7 +154,7 @@ st.markdown("""
 피처는 <b>3개 그룹</b>으로 구성됩니다. &nbsp;|&nbsp;
 <span style="color:#1D4ED8;font-weight:700;">■ 현재 시즌</span>: 7개 &nbsp;
 <span style="color:#2563A8;font-weight:700;">■ 전년도 (prev_)</span>: 9개 &nbsp;
-<span style="color:#2E8B57;font-weight:700;">■ 3년 역가중 (dyn_)</span>: 4개
+<span style="color:#0EA5E9;font-weight:700;">■ 3년 역가중 (dyn_)</span>: 4개
 </div>
 """, unsafe_allow_html=True)
 
@@ -199,8 +191,8 @@ feat_groups = [
     },
     {
         "title": "🟢 3년 평균 역가중 지표 — dyn_ (4개)",
-        "color": "#2E8B57",
-        "bg": "#F0FDF4",
+        "color": "#0EA5E9",
+        "bg": "#F0F9FF",
         "features": [
             ("dyn_pythagorean_win_rate",  "피타고라스 승률 — 3년 역가중"),
             ("dyn_run_differential",      "득실차 — 3년 역가중"),
@@ -239,17 +231,17 @@ st.markdown("""
 <div style="background:white;border-radius:16px;padding:24px 26px;
             box-shadow:0 2px 12px rgba(0,0,0,0.07);">
     <div style="font-size:0.9rem;color:#1E293B;line-height:1.9;">
-        <b style="color:#2E8B57;">dyn_ 피처</b>는 시즌 초반에는 과거 3년 평균 전력을 강하게 반영하고,
-        시즌이 진행될수록 현재 성적이 주도하도록 설계된 <b>동적 가중 지표</b>입니다.<br><br>
-        <div style="background:#F0FDF4;border-radius:10px;padding:14px 18px;
+        <b style="color:#0EA5E9;">dyn_ 피처</b>는 시즌 초반에는 최근 3년 평균 전력을 강하게 반영하고,
+        경기가 쌓일수록 현재 시즌 성적이 예측을 주도하도록 설계된 <b>동적 가중 지표</b>입니다.<br><br>
+        <div style="background:#F0F9FF;border-radius:10px;padding:14px 18px;
                     font-family:monospace;font-size:0.85rem;color:#166534;
-                    border-left:4px solid #2E8B57;margin:8px 0 12px;">
+                    border-left:4px solid #0EA5E9;margin:8px 0 12px;">
             dyn_X = (1 − games_played_ratio) × avg3yr_X
         </div>
         <ul style="margin:0;padding-left:1.2rem;color:#475569;font-size:0.84rem;">
-            <li>시즌 초 (ratio ≈ 0): dyn_ ≈ 3년 평균 → 과거 팀 전력 기반 예측</li>
-            <li>시즌 후반 (ratio ≈ 1): dyn_ ≈ 0 → 현재 성적만으로 판단</li>
-            <li>중반부에서 두 신호가 자연스럽게 혼합되어 안정적인 예측 제공</li>
+            <li>시즌 초 (ratio ≈ 0): dyn_ ≈ 3년 평균 → 소규모 표본의 불확실성을 과거 전력으로 보정</li>
+            <li>시즌 후반 (ratio ≈ 1): dyn_ ≈ 0 → 충분히 쌓인 현재 성적만으로 판단</li>
+            <li>중반부에는 두 신호가 games_played_ratio 비율로 자연스럽게 혼합되어 안정적인 전환 제공</li>
         </ul>
     </div>
 </div>
