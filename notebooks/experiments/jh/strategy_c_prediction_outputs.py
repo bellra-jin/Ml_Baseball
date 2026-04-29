@@ -19,6 +19,9 @@ Strategy C 2026 예측 결과 저장 모듈.
 이 파일은 이미 계산된 `pred_df`, `latest`, `final_model`을 받아 파일로 저장하는 역할만 맡는다.
 """
 
+import hashlib
+import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import matplotlib.colors as mcolors
@@ -29,6 +32,7 @@ import pandas as pd
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 
+from notebooks.experiments.jh.strategy_c_postseason import MODEL_CACHE_VERSION
 from notebooks.experiments.jh.strategy_c_style import (
     ALPHA_BOTTOM,
     ALPHA_TOP,
@@ -40,6 +44,18 @@ from notebooks.experiments.jh.strategy_c_style import (
 )
 
 SUBTITLE = "LR 25% + RF 25% + lightXGB 25% + lightLGBM 25%  |  피처 20개"
+
+
+# ─────────────────────────────────────────────
+# 파일 해시 계산
+# ─────────────────────────────────────────────
+def _sha256_file(path: Path) -> str:
+    """앱이 산출물과 현재 modeling CSV의 동기화 여부를 확인할 수 있도록 파일 해시를 계산한다."""
+    digest = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 # ─────────────────────────────────────────────
@@ -103,6 +119,21 @@ def _feat_group(name: str) -> str:
 
 
 # ─────────────────────────────────────────────
+# 피처 중요도 계산
+# ─────────────────────────────────────────────
+def compute_feature_importance(final_model, feature_cols) -> pd.Series:
+    """
+    최종 모델의 피처 중요도를 계산한다.
+
+    앱과 정적 리포트가 같은 중요도 값을 쓰도록 차트 저장과 CSV 저장에서 이 함수를 공통으로 사용한다.
+    """
+    imp_xgb = pd.Series(final_model.xgb.feature_importances_, index=feature_cols)
+    imp_lgbm = pd.Series(final_model.lgbm.feature_importances_, index=feature_cols)
+    imp_rf = pd.Series(final_model.rf.feature_importances_, index=feature_cols)
+    return (imp_xgb / imp_xgb.sum() + imp_lgbm / imp_lgbm.sum() + imp_rf / imp_rf.sum()) / 3
+
+
+# ─────────────────────────────────────────────
 # 결과 CSV 저장
 # ─────────────────────────────────────────────
 def save_result_csv(latest, outdir: str | Path) -> str:
@@ -113,6 +144,73 @@ def save_result_csv(latest, outdir: str | Path) -> str:
     result_csv.to_csv(out_path, index=False, encoding="utf-8-sig")
     print(f"결과 CSV 저장: {out_path}\n")
     return str(out_path)
+
+
+# ─────────────────────────────────────────────
+# Streamlit 앱용 예측 산출물 CSV 저장
+# ─────────────────────────────────────────────
+def save_app_prediction_artifacts(
+    train_df,
+    pred_df,
+    latest,
+    final_model,
+    feature_cols,
+    root: str | Path,
+    outdir: str | Path,
+) -> dict[str, str]:
+    """
+    Streamlit 앱이 배포 환경에서 재학습하지 않고 같은 예측값을 읽을 수 있도록 CSV 산출물을 저장한다.
+
+    metadata에는 현재 modeling CSV 해시를 함께 넣어, 앱이 산출물과 입력 데이터가 같은 시점인지 검증한다.
+    """
+    _ = train_df
+    root = Path(root)
+    outdir = Path(outdir)
+
+    timeseries_path = outdir / "predict_2026_timeseries.csv"
+    rank_path = outdir / "predict_2026_rank.csv"
+    importance_path = outdir / "predict_2026_importance.csv"
+    metadata_path = outdir / "predict_2026_metadata.json"
+
+    rank_df = (
+        pred_df
+        .sort_values(["date", "prob_norm"], ascending=[True, False])
+        .assign(pred_rank=lambda d: d.groupby("date").cumcount() + 1)
+    )
+    importance = compute_feature_importance(final_model, feature_cols)
+
+    pred_df.to_csv(timeseries_path, index=False, encoding="utf-8-sig")
+    rank_df.to_csv(rank_path, index=False, encoding="utf-8-sig")
+    (
+        importance
+        .sort_values(ascending=False)
+        .rename("importance")
+        .reset_index()
+        .rename(columns={"index": "feature"})
+        .to_csv(importance_path, index=False, encoding="utf-8-sig")
+    )
+
+    metadata = {
+        "model_cache_version": MODEL_CACHE_VERSION,
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "train_sha256": _sha256_file(root / "data/modeling/train_dataset.csv"),
+        "predict_sha256": _sha256_file(root / "data/modeling/predict_dataset_2026.csv"),
+        "feature_cols": list(feature_cols),
+        "latest_date": pd.to_datetime(latest["date"].iloc[0]).strftime("%Y-%m-%d"),
+        "top5_teams": list(latest.head(5)["team"]),
+    }
+    metadata_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    print(f"앱용 예측 시계열 CSV 저장: {timeseries_path}")
+    print(f"앱용 예측 순위 CSV 저장: {rank_path}")
+    print(f"앱용 피처 중요도 CSV 저장: {importance_path}")
+    print(f"앱용 메타데이터 저장: {metadata_path}\n")
+    return {
+        "timeseries_csv": str(timeseries_path),
+        "rank_csv": str(rank_path),
+        "importance_csv": str(importance_path),
+        "metadata_json": str(metadata_path),
+    }
 
 
 # ─────────────────────────────────────────────
@@ -225,11 +323,7 @@ def save_importance_chart(final_model, feature_cols, outdir: str | Path) -> str:
 
     LR은 계수 스케일이 다른 모델이라 제외하고, XGB/LGBM/RF의 중요도를 각각 정규화한 뒤 평균낸다.
     """
-    imp_xgb = pd.Series(final_model.xgb.feature_importances_, index=feature_cols)
-    imp_lgbm = pd.Series(final_model.lgbm.feature_importances_, index=feature_cols)
-    imp_rf = pd.Series(final_model.rf.feature_importances_, index=feature_cols)
-    imp = (imp_xgb / imp_xgb.sum() + imp_lgbm / imp_lgbm.sum() + imp_rf / imp_rf.sum()) / 3
-    top_imp = imp.sort_values(ascending=False)
+    top_imp = compute_feature_importance(final_model, feature_cols).sort_values(ascending=False)
 
     group_color = {"dyn_": "#0ea5e9", "prev_": "#2563A8", "other": "#888888"}
     group_label = {"dyn_": "3년 평균 역가중 (dyn_)", "prev_": "전년도 기록 (prev_)", "other": "현재 시즌"}
@@ -504,7 +598,16 @@ def save_prediction_outputs(
     반환값은 산출물 이름과 저장 경로의 매핑이다.
     """
     _ = train_df
-    return {
+    outputs = {
+        **save_app_prediction_artifacts(
+            train_df,
+            pred_df,
+            latest,
+            final_model,
+            feature_cols,
+            root,
+            outdir,
+        ),
         "result_csv": save_result_csv(latest, outdir),
         "bar": save_bar_chart(latest, top5_teams, outdir),
         "trend": save_trend_chart(pred_df, latest, top5_teams, outdir),
@@ -514,3 +617,4 @@ def save_prediction_outputs(
         "heatmap": save_heatmap_chart(pred_df, latest, top5_teams, outdir),
         "radar": save_radar_chart(latest, root, outdir),
     }
+    return outputs
