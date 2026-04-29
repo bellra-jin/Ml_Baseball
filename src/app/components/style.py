@@ -70,6 +70,18 @@ html, body {
     padding: 4px;
 }
 
+.st-emotion-cache-18kf3ut {
+    margin-bottom: 2rem;
+}
+
+.st-emotion-cache-1s8qyds {
+    font-size: 0.84rem;
+}
+
+.st-emotion-cache-1s8qyds h3 {
+    font-size: 1.4rem;
+}
+
 /* ── 구분선 ── */
 hr { border-color: #E2E8F0 !important; margin: 1.2rem 0 !important; }
 </style>

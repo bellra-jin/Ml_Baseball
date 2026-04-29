@@ -10,6 +10,7 @@ from sklearn.metrics import (
     recall_score,
     f1_score,
     roc_auc_score,
+    brier_score_loss,
 )
 
 
@@ -23,7 +24,7 @@ def evaluate_binary_model(y_true, y_proba, threshold=0.5):
         threshold: 확률 → 클래스 변환 기준 (기본 0.5)
 
     Returns:
-        dict — accuracy, precision, recall, f1, roc_auc
+        dict — accuracy, precision, recall, f1, roc_auc, brier
     """
     y_pred = (y_proba >= threshold).astype(int)
     return {
@@ -32,6 +33,7 @@ def evaluate_binary_model(y_true, y_proba, threshold=0.5):
         "recall":    recall_score(y_true, y_pred, zero_division=0),
         "f1":        f1_score(y_true, y_pred, zero_division=0),
         "roc_auc":   roc_auc_score(y_true, y_proba),
+        "brier":     brier_score_loss(y_true, y_proba),
     }
 
 
@@ -87,6 +89,7 @@ def print_metrics(metrics_dict, label=""):
     """evaluate_binary_model 결과를 한 줄로 출력한다."""
     prefix = f"[{label}] " if label else ""
     m = metrics_dict
+    brier_str = f"  Brier={m['brier']:.4f}" if "brier" in m else ""
     print(
         f"{prefix}"
         f"ROC-AUC={m['roc_auc']:.4f}  "
@@ -94,4 +97,5 @@ def print_metrics(metrics_dict, label=""):
         f"Precision={m['precision']:.4f}  "
         f"Recall={m['recall']:.4f}  "
         f"Accuracy={m['accuracy']:.4f}"
+        f"{brier_str}"
     )
