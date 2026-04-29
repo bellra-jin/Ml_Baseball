@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pandas as pd
 
-import kbo_postseason_pipeline as pipe
-import generate_kbo_visualizations as viz
+import notebooks.experiments.dy.dy_final.kbo_postseason_pipeline as pipe
+import notebooks.experiments.dy.dy_final.generate_kbo_visualizations as viz
 
 ROOT_DIR = Path(__file__).resolve().parent
 REPO_DIR = ROOT_DIR.parent

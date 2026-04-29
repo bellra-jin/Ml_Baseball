@@ -9,7 +9,7 @@ from pathlib import Path
 import pandas as pd
 
 
-ROOT_DIR = Path(r"C:\Users\Admin\Documents\GitHub\Ml_Baseball\dy_final")
+ROOT_DIR = Path(__file__).resolve().parent
 DATA_DIR = ROOT_DIR / "data_"
 OUT_HTML = Path(__file__).resolve().parent / "kbo_2022_2026_master_dashboard.html"
 YEARS = [2022, 2023, 2024, 2025, 2026]

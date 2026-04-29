@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from generate_kbo_visualizations_pretty import main
+from notebooks.experiments.dy.dy_final.generate_kbo_visualizations_pretty import main
 
 
 if __name__ == "__main__":

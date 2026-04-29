@@ -9,9 +9,7 @@ $ErrorActionPreference = "Stop"
 
 $ScriptRootPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 $CrawlerPath = Join-Path $ScriptRootPath "kbo_realtime_crawler.py"
-$PipelineOutputRunner = Join-Path $ScriptRootPath "run_kbo_pipeline_outputs.py"
-$VisualizationPath = Join-Path $ScriptRootPath "generate_kbo_visualizations.py"
-$DashboardPath = Join-Path $ScriptRootPath "generate_kbo_master_dashboard.py"
+$DyRealtimeUpdatePath = Join-Path (Split-Path -Parent $ScriptRootPath) "dy_realtime_update.py"
 $LogDir = Join-Path $ScriptRootPath "logs"
 $Stamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $LogFile = Join-Path $LogDir "kbo_midnight_update_$Stamp.log"
@@ -28,9 +26,7 @@ try {
     Write-Log "KBO midnight update started."
     Write-Log "PythonExe: $PythonExe"
     Write-Log "CrawlerPath: $CrawlerPath"
-    Write-Log "PipelineOutputRunner: $PipelineOutputRunner"
-    Write-Log "VisualizationPath: $VisualizationPath"
-    Write-Log "DashboardPath: $DashboardPath"
+    Write-Log "DyRealtimeUpdatePath: $DyRealtimeUpdatePath"
     Write-Log "Year: $Year"
     Write-Log "DataDir: $DataDir"
 
@@ -39,6 +35,9 @@ try {
     }
     if (-not (Test-Path -LiteralPath $CrawlerPath)) {
         throw "Crawler script not found: $CrawlerPath"
+    }
+    if (-not (Test-Path -LiteralPath $DyRealtimeUpdatePath)) {
+        throw "DY realtime update script not found: $DyRealtimeUpdatePath"
     }
 
     $crawlerArgs = @(
@@ -57,28 +56,11 @@ try {
         throw "Crawler failed with exit code $LASTEXITCODE"
     }
 
-    if (Test-Path -LiteralPath $PipelineOutputRunner) {
-        Write-Log "Refreshing pipeline prediction CSV files."
-        & $PythonExe $PipelineOutputRunner --data-dir $DataDir *>&1 | Tee-Object -FilePath $LogFile -Append
-        if ($LASTEXITCODE -ne 0) {
-            throw "Pipeline output refresh failed with exit code $LASTEXITCODE"
-        }
-    }
+    Write-Log "Syncing realtime crawl into raw/processed data and DY experiment outputs."
+    & $PythonExe $DyRealtimeUpdatePath *>&1 | Tee-Object -FilePath $LogFile -Append
 
-    if (Test-Path -LiteralPath $VisualizationPath) {
-        Write-Log "Regenerating visualization PNG files."
-        & $PythonExe $VisualizationPath *>&1 | Tee-Object -FilePath $LogFile -Append
-        if ($LASTEXITCODE -ne 0) {
-            throw "Visualization generation failed with exit code $LASTEXITCODE"
-        }
-    }
-
-    if (Test-Path -LiteralPath $DashboardPath) {
-        Write-Log "Regenerating dashboard HTML."
-        & $PythonExe $DashboardPath *>&1 | Tee-Object -FilePath $LogFile -Append
-        if ($LASTEXITCODE -ne 0) {
-            throw "Dashboard generation failed with exit code $LASTEXITCODE"
-        }
+    if ($LASTEXITCODE -ne 0) {
+        throw "DY realtime update failed with exit code $LASTEXITCODE"
     }
 
     Write-Log "KBO midnight update finished."

@@ -21,7 +21,9 @@ REPO_DIR = EXPERIMENT_DIR.parents[2]
 DATA_DIR = REPO_DIR / "data"
 RAW_DIR = DATA_DIR / "raw"
 PROCESSED_DIR = DATA_DIR / "processed"
-DY_FINAL_DIR = REPO_DIR / "dy_final"
+DY_FINAL_DIR = EXPERIMENT_DIR / "dy_final"
+if not DY_FINAL_DIR.exists():
+    DY_FINAL_DIR = REPO_DIR / "dy_final"
 OUT_DIR = EXPERIMENT_DIR / "kbo_outputs"
 YEARS = [2022, 2023, 2024, 2025, 2026]
 TRAIN_YEARS = [2022, 2023, 2024, 2025]
@@ -330,6 +332,10 @@ def generate_pngs_and_html() -> None:
     dash.DATA_DIR = EXPERIMENT_DIR / "data_"
     dash.OUT_HTML = EXPERIMENT_DIR / "kbo_2022_2026_master_dashboard.html"
     dash.main()
+
+    import dy_chart_dashboard as chart_dash
+
+    chart_dash.render_dashboard()
 
 
 def run_all() -> dict[str, Any]:

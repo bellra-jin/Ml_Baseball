@@ -27,7 +27,10 @@ DATA_DIR = REPO_DIR / "data"
 LIVE_YEAR_DIR = DATA_DIR / "2026"
 RAW_YEAR_DIR = DATA_DIR / "raw" / "2026"
 PROCESSED_YEAR_DIR = DATA_DIR / "processed" / "2026"
-CRAWLER_PATH = REPO_DIR / "dy_final" / "kbo_realtime_crawler.py"
+CRAWLER_CANDIDATES = [
+    REPO_DIR / "dy_final" / "kbo_realtime_crawler.py",
+    EXPERIMENT_DIR / "dy_final" / "kbo_realtime_crawler.py",
+]
 
 LIVE_TO_RAW_FILES = {
     "팀_일자별순위.csv": "team_daily_rank.csv",
@@ -74,12 +77,14 @@ def latest_live_date() -> str | None:
 
 
 def run_crawler(year: int, include_profiles: bool = False) -> None:
-    if not CRAWLER_PATH.exists():
-        raise FileNotFoundError(f"Crawler script not found: {CRAWLER_PATH}")
+    crawler_path = next((path for path in CRAWLER_CANDIDATES if path.exists()), None)
+    if crawler_path is None:
+        searched = ", ".join(str(path) for path in CRAWLER_CANDIDATES)
+        raise FileNotFoundError(f"Crawler script not found. Searched: {searched}")
 
     args = [
         sys.executable,
-        str(CRAWLER_PATH),
+        str(crawler_path),
         "--year",
         str(year),
         "--data-dir",
