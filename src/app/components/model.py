@@ -1,117 +1,135 @@
-import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
+import sys
+import hashlib
+import json
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
-from xgboost import XGBClassifier
-from lightgbm import LGBMClassifier
-from sklearn.impute import SimpleImputer
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestClassifier
 
-ROOT = os.path.join(os.path.dirname(__file__), "../../..")
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
 
-TOP_FEATURES = [
-    "rank", "win_rate", "games_behind_5th",
-    "prev_pythagorean_win_rate", "prev_team_era", "prev_ops_concentration",
-    "prev_bb_rate", "prev_top5_hitter_ops_avg", "prev_ace_era",
-    "prev_run_differential", "prev_k_bb_ratio", "wins_to_5th",
-    "games_behind", "home_win_rate", "dyn_run_differential",
-    "prev_iso", "away_win_rate", "dyn_bb_rate",
-    "dyn_pythagorean_win_rate", "dyn_k_bb_ratio",
-]
+from notebooks.experiments.jh.strategy_c_postseason import (
+    MODEL_CACHE_VERSION,
+    PREDICT_DATASET_PATH,
+    TRAIN_DATASET_PATH,
+    load_model_and_predict as _load_model_and_predict,
+    run_loso_cv_for_app,
+)
 
 
-def _build_models(pos_w):
-    lr = Pipeline([
-        ("imputer", SimpleImputer(strategy="median")),
-        ("scaler", StandardScaler()),
-        ("lr", LogisticRegression(
-            C=0.1,
-            max_iter=2000,
-            random_state=42,
-            class_weight="balanced",
-            solver="lbfgs",
-        )),
-    ])
-    rf = RandomForestClassifier(
-        n_estimators=300, max_depth=4, min_samples_leaf=20,
-        max_features="sqrt", class_weight="balanced",
-        random_state=42, n_jobs=-1,
-    )
-    xgb = XGBClassifier(
-        n_estimators=40, max_depth=2, learning_rate=0.1,
-        subsample=0.6, colsample_bytree=0.5,
-        reg_alpha=5.0, reg_lambda=10.0, min_child_weight=30,
-        scale_pos_weight=pos_w, eval_metric="logloss", random_state=42,
-    )
-    lgbm = LGBMClassifier(
-        n_estimators=40, max_depth=2, learning_rate=0.1,
-        subsample=0.6, colsample_bytree=0.5,
-        reg_alpha=5.0, reg_lambda=10.0, min_child_samples=50,
-        scale_pos_weight=pos_w, random_state=42, verbose=-1,
-    )
-    return lr, rf, xgb, lgbm
+ROOT = Path(__file__).resolve().parents[3]
+APP_OUTPUT_DIR = ROOT / "notebooks/experiments/jh/kbo_prediction_2026"
+TIMESERIES_PATH = APP_OUTPUT_DIR / "predict_2026_timeseries.csv"
+RANK_PATH = APP_OUTPUT_DIR / "predict_2026_rank.csv"
+IMPORTANCE_PATH = APP_OUTPUT_DIR / "predict_2026_importance.csv"
+METADATA_PATH = APP_OUTPUT_DIR / "predict_2026_metadata.json"
 
 
-def _ensemble_proba(lr, rf, xgb, lgbm, X):
+def _sha256_file(path):
+    digest = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _file_cache_key(path):
+    if not path.exists():
+        return str(path), None, None
+    stat = path.stat()
+    return str(path), stat.st_mtime_ns, stat.st_size
+
+
+def _prediction_cache_key():
     return (
-        lr.predict_proba(X)[:, 1] +
-        rf.predict_proba(X)[:, 1] +
-        xgb.predict_proba(X)[:, 1] +
-        lgbm.predict_proba(X)[:, 1]
-    ) / 4
+        MODEL_CACHE_VERSION,
+        _file_cache_key(TRAIN_DATASET_PATH),
+        _file_cache_key(PREDICT_DATASET_PATH),
+        _file_cache_key(TIMESERIES_PATH),
+        _file_cache_key(RANK_PATH),
+        _file_cache_key(IMPORTANCE_PATH),
+        _file_cache_key(METADATA_PATH),
+    )
+
+
+def _validation_cache_key():
+    return (
+        MODEL_CACHE_VERSION,
+        _file_cache_key(TRAIN_DATASET_PATH),
+    )
+
+
+def _read_artifact_metadata():
+    if not METADATA_PATH.exists():
+        return None
+    with METADATA_PATH.open(encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _artifact_files_exist():
+    return all(
+        path.exists()
+        for path in [TIMESERIES_PATH, RANK_PATH, IMPORTANCE_PATH, METADATA_PATH]
+    )
+
+
+def _artifacts_match_current_data(metadata):
+    return (
+        metadata is not None
+        and metadata.get("model_cache_version") == MODEL_CACHE_VERSION
+        and metadata.get("train_sha256") == _sha256_file(TRAIN_DATASET_PATH)
+        and metadata.get("predict_sha256") == _sha256_file(PREDICT_DATASET_PATH)
+    )
+
+
+def _load_prediction_artifacts():
+    """
+    로컬에서 생성해 커밋한 예측 산출물을 우선 사용한다.
+
+    Streamlit Cloud 환경에서 모델을 다시 학습하면 패키지/OS 차이로 피처 중요도가 달라질 수 있어,
+    metadata가 현재 modeling CSV와 일치할 때는 저장된 산출물을 읽어 로컬/배포 화면을 고정한다.
+    """
+    if not _artifact_files_exist():
+        return None
+
+    metadata = _read_artifact_metadata()
+    if not _artifacts_match_current_data(metadata):
+        return None
+
+    pred_df = pd.read_csv(TIMESERIES_PATH)
+    rank_df = pd.read_csv(RANK_PATH)
+    importance_df = pd.read_csv(IMPORTANCE_PATH)
+
+    pred_df["date"] = pd.to_datetime(pred_df["date"])
+    rank_df["date"] = pd.to_datetime(rank_df["date"])
+
+    importance = pd.Series(
+        importance_df["importance"].values,
+        index=importance_df["feature"].values,
+    )
+    feature_cols = metadata.get("feature_cols", list(importance.index))
+    return pred_df, rank_df, importance, feature_cols
 
 
 @st.cache_resource(show_spinner="Strategy C 앙상블 모델 학습 중... (첫 실행만 소요됩니다)")
+def _cached_load_model_and_predict(cache_key):
+    _ = cache_key
+    artifact_result = _load_prediction_artifacts()
+    if artifact_result is not None:
+        return artifact_result
+    return _load_model_and_predict()
+
+
+@st.cache_data(show_spinner="LOSO-CV 검증 실행 중... (첫 실행만 소요됩니다)")
+def _cached_run_loso_cv(cache_key):
+    _ = cache_key
+    return run_loso_cv_for_app()
+
+
 def load_model_and_predict():
-    train_df = pd.read_csv(os.path.join(ROOT, "data/modeling/train_dataset.csv"))
-    pred_df  = pd.read_csv(os.path.join(ROOT, "data/modeling/predict_dataset_2026.csv"))
+    return _cached_load_model_and_predict(_prediction_cache_key())
 
-    train_df["date"] = pd.to_datetime(train_df["date"])
-    pred_df["date"]  = pd.to_datetime(pred_df["date"])
 
-    cols = [c for c in TOP_FEATURES if c in train_df.columns and c in pred_df.columns]
-
-    X_train = train_df[cols]
-    y_train = train_df["postseason"]
-
-    s_min, s_max = train_df["season"].min(), train_df["season"].max()
-    sw = (0.3 + 0.7 * (train_df["season"] - s_min) / (s_max - s_min)).values
-    pos_w = (y_train == 0).sum() / (y_train == 1).sum()
-
-    lr, rf, xgb, lgbm = _build_models(pos_w)
-
-    lr.fit(X_train, y_train)
-    rf.fit(X_train, y_train, sample_weight=sw)
-    xgb.fit(X_train, y_train, sample_weight=sw)
-    lgbm.fit(X_train, y_train, sample_weight=sw)
-
-    X_pred = pred_df[cols]
-    prob_raw = _ensemble_proba(lr, rf, xgb, lgbm, X_pred)
-
-    pred_df = pred_df.copy()
-    pred_df["prob_raw"]  = prob_raw
-    pred_df["prob_norm"] = pred_df.groupby("date")["prob_raw"].transform(
-        lambda x: (x / x.sum() * 5).clip(upper=1.0)
-    )
-
-    rank_df = (
-        pred_df
-        .sort_values(["date", "prob_norm"], ascending=[True, False])
-        .assign(pred_rank=lambda d: d.groupby("date").cumcount() + 1)
-    )
-
-    imp_xgb  = pd.Series(xgb.feature_importances_,  index=cols)
-    imp_lgbm = pd.Series(lgbm.feature_importances_, index=cols)
-    imp_rf   = pd.Series(rf.feature_importances_,   index=cols)
-    importance = (
-        imp_xgb  / imp_xgb.sum() +
-        imp_lgbm / imp_lgbm.sum() +
-        imp_rf   / imp_rf.sum()
-    ) / 3
-
-    return pred_df, rank_df, importance, cols
+def run_loso_cv():
+    return _cached_run_loso_cv(_validation_cache_key())

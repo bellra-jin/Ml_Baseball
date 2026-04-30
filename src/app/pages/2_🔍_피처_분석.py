@@ -43,7 +43,7 @@ with st.sidebar:
         "3년 역가중 (dyn_)": importance[importance.index.str.startswith("dyn_")].sum() / total,
     }
     st.markdown("**피처 그룹 비중**")
-    colors_grp = {"현재 시즌": "#94A3B8", "전년도 (prev_)": "#2563A8", "3년 역가중 (dyn_)": "#2E8B57"}
+    colors_grp = {"현재 시즌": "#94A3B8", "전년도 (prev_)": "#2563A8", "3년 역가중 (dyn_)": "#0EA5E9"}
     for label, pct in grp_pct.items():
         c = colors_grp[label]
         st.markdown(
@@ -56,13 +56,6 @@ with st.sidebar:
             f'</div></div>',
             unsafe_allow_html=True,
         )
-    st.markdown("---")
-    st.markdown("**범례**")
-    st.markdown("""
-🟢 3년 평균 역가중 피처
-🔵 전년도 기록 피처
-⚪ 현재 시즌 피처
-    """)
 
 # ── 헤더 ─────────────────────────────────────────
 st.markdown(f"""
@@ -83,7 +76,7 @@ st.markdown('<div class="section-title">📊 피처 중요도 Top 20</div>', uns
 st.markdown("""
 <div class="info-box">
 Strategy C의 트리 계열 3개 모델(XGBoost · LightGBM · RandomForest) 중요도 평균값입니다. &nbsp;|&nbsp;
-<span style="color:#2E8B57;font-weight:700;">■ dyn_</span>: 3년 평균 역가중 &nbsp;
+<span style="color:#0EA5E9;font-weight:700;">■ dyn_</span>: 3년 평균 역가중 &nbsp;
 <span style="color:#2563A8;font-weight:700;">■ prev_</span>: 전년도 기록 &nbsp;
 <span style="color:#94A3B8;font-weight:700;">■</span>: 현재 시즌
 </div>
@@ -99,7 +92,7 @@ with col_list:
     cards = ""
     for i, (feat, val) in enumerate(top10.items(), 1):
         if feat.startswith("dyn_"):
-            badge, color = "🟢", "#2E8B57"
+            badge, color = "🟢", "#0EA5E9"
         elif feat.startswith("prev_"):
             badge, color = "🔵", "#2563A8"
         else:
@@ -156,7 +149,7 @@ c1, c2, c3 = st.columns(3)
 group_data = [
     ("⚪", "현재 시즌 피처",      "#94A3B8", grp_pct["현재 시즌"]),
     ("🔵", "전년도 기록 (prev_)", "#2563A8", grp_pct["전년도 (prev_)"]),
-    ("🟢", "3년 역가중 (dyn_)",   "#2E8B57", grp_pct["3년 역가중 (dyn_)"]),
+    ("🟢", "3년 역가중 (dyn_)",   "#0EA5E9", grp_pct["3년 역가중 (dyn_)"]),
 ]
 for col, (icon, label, color, pct) in zip([c1, c2, c3], group_data):
     with col:

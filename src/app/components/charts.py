@@ -303,7 +303,7 @@ def importance_chart(importance: pd.Series) -> go.Figure:
     top20 = importance.sort_values(ascending=False).head(20)
 
     def _group(name):
-        if name.startswith("dyn_"):  return ("#2E8B57", "3년 평균 역가중")
+        if name.startswith("dyn_"):  return ("#0EA5E9", "3년 평균 역가중")
         if name.startswith("prev_"): return ("#2563A8", "전년도 기록")
         return ("#94A3B8", "현재 시즌")
 
@@ -374,6 +374,149 @@ def heatmap_chart(pred_df: pd.DataFrame, top5_teams: set) -> go.Figure:
     fig.update_xaxes(tickvals=dlabels[::tick_step], ticktext=dlabels[::tick_step], tickangle=0)
     fig.update_layout(
         **_base_layout(height=390),
+        yaxis=dict(tickfont=dict(size=11), autorange="reversed"),
+    )
+    return fig
+
+
+# ── 검증 차트 ─────────────────────────────────────────────────────────────────
+
+def val_scorecard_chart(metrics_df: pd.DataFrame) -> go.Figure:
+    metric_keys   = ["test_auc", "f1", "precision", "recall", "brier"]
+    metric_labels = ["Test AUC", "F1", "Precision", "Recall", "Brier↓"]
+    seasons = [str(s) for s in metrics_df["season"]]
+
+    z_raw = np.array([
+        [metrics_df[m].iloc[j] for j in range(len(metrics_df))]
+        for m in metric_keys
+    ])
+    text_fmt = np.array([
+        [f"{metrics_df[m].iloc[j]:.3f}" for j in range(len(metrics_df))]
+        for m in metric_keys
+    ])
+
+    z_color = np.zeros_like(z_raw)
+    for i in range(len(metric_keys)):
+        row = z_raw[i]
+        lo, hi = row.min(), row.max()
+        z_color[i] = (row - lo) / (hi - lo) if hi > lo else np.full_like(row, 0.5)
+    z_color[4] = 1.0 - z_color[4]  # Brier: 낮을수록 좋음 → 색상 반전
+
+    fig = go.Figure(go.Heatmap(
+        z=z_color[::-1], x=seasons, y=metric_labels[::-1],
+        text=text_fmt[::-1], texttemplate="%{text}",
+        textfont=dict(size=12),
+        colorscale=[[0, "#FEE2E2"], [0.5, "#FEF9C3"], [1.0, "#DCFCE7"]],
+        showscale=False,
+        hovertemplate="<b>%{y}</b><br>시즌: %{x}<br>값: %{text}<extra></extra>",
+    ))
+    fig.update_layout(
+        **_base_layout(height=260),
         yaxis=dict(tickfont=dict(size=11)),
+        xaxis=dict(tickfont=dict(size=11)),
+    )
+    return fig
+
+
+def val_overfit_gap_chart(metrics_df: pd.DataFrame) -> go.Figure:
+    seasons = [str(s) for s in metrics_df["season"]]
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=seasons, y=metrics_df["train_auc"],
+        mode="lines+markers", name="Train AUC",
+        line=dict(color="#93C5FD", width=2.5),
+        marker=dict(size=7, color="#93C5FD"),
+        hovertemplate="Train AUC: %{y:.3f}<extra></extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        x=seasons, y=metrics_df["test_auc"],
+        mode="lines+markers", name="Test AUC",
+        line=dict(color="#1D4ED8", width=2.5),
+        marker=dict(size=7, color="#1D4ED8"),
+        fill="tonexty", fillcolor="rgba(191,219,254,0.25)",
+        hovertemplate="Test AUC: %{y:.3f}<extra></extra>",
+    ))
+
+    for _, row in metrics_df.iterrows():
+        gap = row["train_auc"] - row["test_auc"]
+        fig.add_annotation(
+            x=str(int(row["season"])), y=row["train_auc"] + 0.015,
+            text=f"갭 {gap:.3f}", showarrow=False,
+            font=dict(size=9, color="#DC2626"),
+        )
+
+    fig.update_layout(
+        **_base_layout(height=320),
+        yaxis=dict(range=[0.6, 1.08], title="AUC",
+                   showgrid=True, gridcolor="#F0F0F0"),
+        legend=dict(orientation="h", y=1.08, x=0),
+    )
+    return fig
+
+
+def val_calibration_chart(oof_probs: np.ndarray, oof_labels: np.ndarray) -> go.Figure:
+    from sklearn.calibration import calibration_curve
+
+    frac_pos, mean_pred = calibration_curve(
+        oof_labels, oof_probs, n_bins=10, strategy="quantile"
+    )
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=[0, 1], y=[0, 1], mode="lines", name="완벽한 보정",
+        line=dict(color="#CBD5E1", dash="dash", width=1.5),
+        hoverinfo="skip",
+    ))
+    fig.add_trace(go.Scatter(
+        x=mean_pred, y=frac_pos,
+        mode="lines+markers", name="Strategy C",
+        line=dict(color="#1D4ED8", width=2.5),
+        marker=dict(size=9, color="#1D4ED8", line=dict(color="white", width=1.5)),
+        fill="tozeroy", fillcolor="rgba(29,78,216,0.07)",
+        hovertemplate="예측 확률: %{x:.3f}<br>실제 진출 비율: %{y:.3f}<extra></extra>",
+    ))
+
+    fig.update_layout(
+        **_base_layout(height=320),
+        xaxis=dict(title="예측 확률", range=[-0.02, 1.02],
+                   tickformat=".1f", showgrid=True, gridcolor="#F0F0F0"),
+        yaxis=dict(title="실제 진출 비율", range=[-0.02, 1.02],
+                   tickformat=".1f", showgrid=True, gridcolor="#F0F0F0"),
+        legend=dict(orientation="h", y=1.08, x=0),
+    )
+    return fig
+
+
+def val_checkpoint_chart(checkpoint_df: pd.DataFrame) -> go.Figure:
+    cp_order = ["50%", "75%", "90%", "최종"]
+    pivot = (
+        checkpoint_df
+        .pivot(index="season", columns="checkpoint", values="hit")
+        .reindex(columns=cp_order)
+    )
+    season_labels = [str(s) for s in pivot.index]
+
+    fig = go.Figure(go.Heatmap(
+        z=pivot.values,
+        x=cp_order,
+        y=season_labels,
+        text=[[f"{int(v)}/5" for v in row] for row in pivot.values],
+        texttemplate="%{text}",
+        textfont=dict(size=13),
+        colorscale=[[0, "#FEE2E2"], [0.4, "#FEF9C3"], [0.7, "#DCFCE7"], [1.0, "#166534"]],
+        zmin=0, zmax=5,
+        colorbar=dict(title=dict(text="적중 수"), tickvals=[0, 1, 2, 3, 4, 5]),
+        hovertemplate="체크포인트: %{x}<br>시즌: %{y}<br>적중: %{z}/5<extra></extra>",
+    ))
+    fig.update_layout(
+        **_base_layout(height=360),
+        xaxis=dict(type="category", tickfont=dict(size=12)),
+        yaxis=dict(
+            type="category",
+            tickfont=dict(size=11),
+            categoryorder="array",
+            categoryarray=season_labels[::-1],
+        ),
     )
     return fig

@@ -134,3 +134,35 @@ FEATURE_COLS = [
     "dyn_ops_concentration",       # (1 - ratio) × avg3yr 타선 균형도
     "dyn_bb_rate",                 # (1 - ratio) × avg3yr 볼넷 비율
 ]
+
+# ─────────────────────────────────────────────
+# Strategy C 최종 피처 (상위 20개, 중요도 기반 선정)
+# FEATURE_COLS 후보 중 LOSO-CV 중요도로 추려낸 실제 학습·예측 피처셋
+# ─────────────────────────────────────────────
+TOP_FEATURES = [
+    # ── 현재 시즌 순위·성적 핵심 지표 ─────────────────
+    "rank",                       # 현재 순위
+    "win_rate",                   # 누적 승률
+    "games_behind_5th",           # 5위와의 게임차 (음수=5위권 내)
+    "wins_to_5th",                # 5위 추월에 필요한 잔여 승수
+    "games_behind",              # 1위와의 게임차
+    "home_win_rate",              # 홈 승률
+    "away_win_rate",              # 원정 승률
+
+    # ── 전년도(t-1) 핵심 전력 지표 ───────────────────
+    "prev_pythagorean_win_rate",  # 종합 전력 (운 제거한 기대 승률)
+    "prev_team_era",              # 팀 ERA (투수진 전체 품질)
+    "prev_ops_concentration",     # 타선 균형도 (낮을수록 균형)
+    "prev_bb_rate",               # 볼넷 비율 (선구안)
+    "prev_top5_hitter_ops_avg",   # 주전 타자 OPS 평균 (타격력)
+    "prev_ace_era",               # 에이스 ERA (1선발 품질)
+    "prev_run_differential",      # 득실차 (공격+수비 종합)
+    "prev_k_bb_ratio",            # 탈삼진/볼넷 비율 (제구력)
+    "prev_iso",                   # ISO (순수 장타력)
+
+    # ── 3년 평균 역가중(dyn_) 지표 ───────────────────
+    "dyn_run_differential",       # (1 - ratio) × avg3yr 득실차
+    "dyn_bb_rate",                # (1 - ratio) × avg3yr 볼넷 비율
+    "dyn_pythagorean_win_rate",   # (1 - ratio) × avg3yr 피타고라스 승률
+    "dyn_k_bb_ratio",             # (1 - ratio) × avg3yr 탈삼진/볼넷 비율
+]
