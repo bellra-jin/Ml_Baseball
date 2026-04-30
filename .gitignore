@@ -131,6 +131,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+__init__.py
 
 # Spyder project settings
 .spyderproject
@@ -173,4 +174,11 @@ poetry.toml
 # LSP config files
 pyrightconfig.json
 
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
 # End of https://www.toptal.com/developers/gitignore/api/python
+
+.ignore
